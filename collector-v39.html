@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Collector v39 — Built-on v35e (Full Offline)</title>
+<style>
+:root{--bg1:#0b0a0f;--bg2:#07070c;--ink:#fff;--ink-dim:#e8e8f4;--line:rgba(255,255,255,.38);--line-strong:rgba(255,255,255,.75);--obs:0 0 0 1px rgba(255,255,255,.25), 0 0 12px rgba(255,255,255,.18);--shadow:0 18px 50px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.06);--rad:24px;--pad:14px;--font:17px;--menu:248px}
+body.theme-dark{--bg1:#0b0a0f;--bg2:#07070c;--ink:#fff;--ink-dim:#e8e8f4}
+body.theme-silver{--bg1:#0a0a0a;--bg2:#111115;--ink:#f6f7fb;--ink-dim:#d8dbe6}
+body.theme-ember{--bg1:#1a0c0c;--bg2:#0c0606;--ink:#fff5f2;--ink-dim:#ffe1d9}
+body.theme-azure{--bg1:#06121e;--bg2:#030b12;--ink:#eff7ff;--ink-dim:#cfe9ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:
+  radial-gradient(1200px 900px at 50% -10%, rgba(80,50,120,.25) 0%, transparent 55%),
+  radial-gradient(1200px 900px at 100% 0%, rgba(40,40,120,.16) 0%, transparent 60%),
+  linear-gradient(180deg, var(--bg1), var(--bg2));
+  color:var(--ink);font:700 var(--font) "Times New Roman", Times, serif;letter-spacing:.2px}
+body{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.app{max-width:1240px;margin:0 auto;padding:64px 10px 110px}
+section{display:none} section.active{display:block}
+.panel{border-radius:var(--rad);padding:var(--pad);background:linear-gradient(180deg,#0c0c10,#09090e);box-shadow:var(--obs),var(--shadow)}
+
+#menuBtn{position:fixed;top:12px;left:12px;z-index:90;width:50px;height:50px;border-radius:50%;background:#000;border:1px solid var(--line-strong);box-shadow:0 0 0 2px rgba(255,255,255,.22), 0 0 12px rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:22px}
+#menuBtn svg{width:22px;height:22px;display:block}
+#sideNav{position:fixed;top:0;left:0;bottom:0;width:var(--menu);background:#000;border-right:1px solid var(--line-strong);box-shadow:0 0 0 2px rgba(255,255,255,.08), 16px 0 45px rgba(0,0,0,.7);transform:translateX(-100%);transition:transform .2s ease-out;z-index:89;display:flex;flex-direction:column;gap:10px;padding:68px 12px 14px}
+#sideNav.open{transform:translateX(0)} #sideOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:88;display:none}
+#sideOverlay.show{display:block}
+.menu-title{font-size:12px;color:var(--ink-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+.menu-btn{width:100%;padding:12px;border-radius:14px;background:#0a0a0f;border:1px solid var(--line);color:#fff;box-shadow:var(--obs);cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center}
+.menu-btn.active{background:#11111a;border-color:#fff;box-shadow:0 0 0 2px #fff, 0 0 18px rgba(255,255,255,.45)}
+.menu-wallet{margin-top:auto;background:#0a0a10;border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:var(--obs)}
+.menu-stat{display:flex;justify-content:space-between;margin-bottom:4px}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0;align-items:center}
+label{font-size:12px;color:var(--ink-dim);display:flex;flex-direction:column;gap:6px}
+input[type="text"],input[type="number"],select,textarea{width:100%;padding:10px 12px;border-radius:12px;background:#000;color:#fff;border:1px solid var(--line-strong);box-shadow:var(--obs)}
+textarea{min-height:70px;resize:vertical}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:#06060a;border:1px solid var(--line-strong);color:#fff;box-shadow:var(--obs);cursor:pointer;font-weight:700}
+.btn.small{padding:6px 8px;font-size:12px;border-radius:10px}
+
+.subtabs{display:flex;gap:8px;margin:6px 0 2px;flex-wrap:wrap}
+.subtab{padding:8px 12px;border-radius:999px;background:#0a0a0f;border:1px solid var(--line);box-shadow:var(--obs);cursor:pointer;color:#fff}
+.subtab.active{background:#131321;border-color:#fff;box-shadow:0 0 0 2px #fff, 0 0 14px rgba(255,255,255,.35)}
+
+.grid{display:grid;gap:12px;width:100%}
+.card{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#0b0b11,#0a0a10);border:1px solid rgba(255,255,255,.25);box-shadow:var(--obs)}
+.frame{position:relative;margin:var(--pad);border-radius:20px;overflow:hidden;border:10px solid transparent;background-origin:border-box;background-clip:padding-box,border-box;background-image:linear-gradient(#07070b,#07070b),var(--grad,linear-gradient(90deg,#bfc7ff,#8a93d6));box-shadow:0 0 0 1px rgba(255,255,255,.35),0 0 16px rgba(255,255,255,.18)}
+.frame::after{content:"";position:absolute;inset:-6px;border-radius:24px;pointer-events:none;background:
+  radial-gradient(14px 14px at 0 0,#fff 0 36%,transparent 37%) top left,
+  radial-gradient(14px 14px at 100% 0,#fff 0 36%,transparent 37%) top right,
+  radial-gradient(14px 14px at 0 100%,#fff 0 36%,transparent 37%) bottom left,
+  radial-gradient(14px 14px at 100% 100%,#fff 0 36%,transparent 37%) bottom right;
+  background-repeat:no-repeat;background-size:30px 30px,30px 30px,30px 30px,30px 30px;filter:drop-shadow(0 0 6px rgba(255,255,255,.35));mix-blend-mode:screen}
+.img{width:100%;background:#05060a url('') center/cover no-repeat;cursor:pointer}
+.kind-unit .img{aspect-ratio:2/3}.kind-item .img{aspect-ratio:1/1}.kind-ride .img{aspect-ratio:3/2}.kind-estate .img{aspect-ratio:3/2}
+.overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.7));pointer-events:none}
+
+.rtxt{-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.65),0 0 6px rgba(255,255,255,.14)}
+.rname{position:absolute;top:10px;left:12px;z-index:2}.rgrade{position:absolute;top:10px;right:12px;z-index:2}.rtier{position:absolute;bottom:10px;left:12px;z-index:2}
+.counter{position:absolute;right:10px;bottom:10px;z-index:3;background:#000;border:1px solid #fff;border-radius:999px;padding:2px 8px;font-size:12px;box-shadow:0 0 0 2px #fff, 0 0 12px rgba(255,255,255,.35)}
+.lbBadge{position:absolute;left:10px;bottom:10px;z-index:3;background:#000;border:1px solid #fff;border-radius:999px;padding:2px 8px;font-size:12px;box-shadow:0 0 0 2px #fff, 0 0 12px rgba(255,255,255,.35)}
+
+.info{padding:12px 14px;background:#000;border-top:1px solid var(--line-strong)}
+.title{font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:13px;color:#fff;margin-top:2px}
+.desc{font-style:italic;color:#f0eff8;margin:6px 0 10px}
+.stats{font-weight:900;font-size:14px;line-height:1.5;color:#fff}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.badge{padding:4px 8px;border-radius:999px;border:1px solid var(--line-strong);background:#05060a;color:#fff;font-size:12px;box-shadow:var(--obs)}
+.meta.actions{justify-content:flex-end}
+.price{display:inline-flex;align-items:center;gap:6px}
+
+body.compact-img .info, body.compact-img .editRow{display:none!important}
+body.compact-img .frame{margin:8px;border-width:10px}
+body.compact-img .grid{gap:8px}
+body.compact-img .card{border-radius:26px}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center}
+.box{width:92%;max-width:900px;background:#000;border:1px solid #fff;border-radius:20px;box-shadow:0 0 0 2px #fff, 0 0 20px rgba(255,255,255,.35);padding:16px;color:#fff}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+
+footer{position:fixed;left:0;right:0;bottom:0;padding:8px;background:#000;border-top:1px solid #fff;text-align:center;font-size:12px;color:#fff;box-shadow:0 0 0 1px #fff,0 0 14px rgba(255,255,255,.3)}
+.errorbar{position:fixed;right:10px;bottom:50px;background:#900;border:1px solid #fff;border-radius:10px;padding:6px 10px;color:#fff;max-width:80vw;display:none;z-index:200}
+</style>
+</head>
+<body class="theme-dark">
+<button id="menuBtn" aria-label="Open Menu">
+  <svg viewBox="0 0 24 24" fill="white"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg>
+</button>
+<div id="sideNav">
+  <div class="menu-title">Navigation</div>
+  <button class="menu-btn" data-tab="summon">🔮 Summon</button>
+  <button class="menu-btn" data-tab="codex">📜 Codex</button>
+  <button class="menu-btn" data-tab="collection">⚔ Collection</button>
+  <button class="menu-btn" data-tab="myplayer">🧙 My Player</button>
+  <button class="menu-btn" data-tab="rarities">🌈 Rarities</button>
+  <button class="menu-btn" data-tab="forge">⚒ Forge</button>
+  <button class="menu-btn" data-tab="fusion">🧬 Fusion Lab</button>
+  <button class="menu-btn" data-tab="settings">⚙️ Settings</button>
+  <div class="menu-wallet">
+    <div class="menu-stat"><span>Coins</span><b id="mCoins">0</b></div>
+    <div class="menu-stat"><span>Gems</span><b id="mGems">0</b></div>
+  </div>
+</div>
+<div id="sideOverlay"></div>
+
+<div class="app">
+  <section id="summon" class="panel">
+    <div class="controls">
+      <label>Currency</label>
+      <select id="currency"><option value="gems">Gems (better odds)</option><option value="coins">Coins</option></select>
+      <button class="btn" id="singlePull">Single</button>
+      <button class="btn" id="tenPull">x10</button>
+      <span id="oddsHint" style="margin-left:auto;color:#fff;font-size:12px"></span>
+    </div>
+    <div class="controls">
+      <label>Columns</label><select id="sumCols"><option>Auto</option><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+      <label style="margin-left:12px">Layout</label><select id="layoutMode"><option>Normal</option><option selected>Compact Image Only</option></select>
+    </div>
+    <div id="summonResult" class="grid"></div>
+  </section>
+
+  <section id="codex" class="panel">
+    <div class="subtabs" id="codexTabs">
+      <button class="subtab" data-kind="units">🛡 Units</button>
+      <button class="subtab" data-kind="items">🧪 Items</button>
+      <button class="subtab" data-kind="rides">🐴 Rides</button>
+      <button class="subtab" data-kind="estates">🏰 Estates</button>
+    </div>
+    <div class="controls">
+      <input id="search" placeholder="Search name/world/type/tags…">
+      <select id="filterRarity"><option value="">All Rarities</option></select>
+      <select id="ownedFilter"><option value="">All</option><option value="owned">Owned</option><option value="unowned">Unowned</option></select>
+      <select id="sortBy"><option value="name">Sort: Name</option><option value="tier">Sort: Tier</option><option value="level">Sort: Level</option></select>
+      <button class="btn" id="addCard">+ Add</button>
+      <span style="margin-left:auto"></span>
+      <label>Columns</label><select id="codCols"><option>Auto</option><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+      <label style="margin-left:12px">Layout</label><select id="layoutMode2"><option>Normal</option><option selected>Compact Image Only</option></select>
+    </div>
+    <div id="codexList" class="grid"></div>
+  </section>
+
+  <section id="collection" class="panel">
+    <div class="controls">
+      <input id="colSearch" placeholder="Search owned…">
+      <select id="colFilterRarity"><option value="">All Rarities</option></select>
+      <select id="colOwnedFilter"><option value="owned">Owned</option><option value="">All</option><option value="unowned">Unowned</option></select>
+      <select id="colSortBy"><option value="name">Sort: Name</option><option value="tier">Sort: Tier</option><option value="level">Sort: Level</option></select>
+      <select id="colType"><option value="">All Types</option><option value="unit">Units</option><option value="item">Items</option><option value="ride">Rides</option><option value="estate">Estates</option></select>
+      <span style="margin-left:auto"></span>
+      <label>Columns</label><select id="colCols"><option>Auto</option><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+      <label style="margin-left:12px">Layout</label><select id="layoutMode3"><option>Normal</option><option selected>Compact Image Only</option></select>
+      <span style="margin-left:auto;color:#fff" id="collectionStats"></span>
+    </div>
+    <div id="collectionList" class="grid"></div>
+  </section>
+
+  <section id="myplayer" class="panel">
+    <h3 style="margin:0 0 10px">🧙 My Player</h3>
+    <div class="controls">
+      <button class="btn" id="mp_edit">Edit</button>
+      <button class="btn" id="mp_lv1">+1 Level</button>
+      <button class="btn" id="mp_lvmax">To 100</button>
+      <button class="btn" id="mp_ascend">Ascend</button>
+      <button class="btn" id="mp_lb">Limit Break</button>
+      <span style="margin-left:auto;font-size:12px;color:#fff">Only shown here (not in Collection)</span>
+    </div>
+    <div class="controls">
+      <label>Quick Name<input id="qp_name"></label>
+      <label>Quick Image URL<input id="qp_img"></label>
+      <label>Quick Rarity<select id="qp_rarity"></select></label>
+      <button class="btn" id="qp_save">Save Quick</button>
+    </div>
+    <div id="myPlayerView" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));"></div>
+  </section>
+
+  <section id="rarities" class="panel">
+    <div class="controls">
+      <button class="btn" id="r_add">+ Add Rarity</button>
+      <button class="btn" id="r_reset">Reset</button>
+      <span style="margin-left:auto;font-size:12px;color:#fff">Edit by re-adding; delete custom allowed</span>
+    </div>
+    <div id="r_list" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))"></div>
+  </section>
+
+  <section id="forge" class="panel">
+    <div class="controls">
+      <span style="color:#fff">Forge recipes</span>
+      <button class="btn" id="addRecipe">+ Add Recipe</button>
+    </div>
+    <div id="forgeList" class="grid"></div>
+  </section>
+
+  <section id="fusion" class="panel">
+    <div class="controls">
+      <span style="color:#fff">Fusion Lab</span>
+      <button class="btn" id="addFusionRecipe" style="margin-left:auto">+ Add Fusion Recipe</button>
+    </div>
+    <div class="subtabs" id="fusionTabs">
+      <button class="subtab" data-fmode="dups">Duplicates</button>
+      <button class="subtab" data-fmode="recipes">Recipes</button>
+    </div>
+    <div id="fusionList" class="grid"></div>
+  </section>
+
+  <section id="settings" class="panel">
+    <h3 style="margin:6px 0 10px">⚙️ Settings</h3>
+    <div class="controls">
+      <button class="btn" id="exportBtn">Export JSON</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+      <button class="btn" id="importBtn">Import JSON</button>
+      <button class="btn" id="wipeBtn" style="margin-left:auto">Delete All</button>
+    </div>
+    <div class="controls">
+      <label>Theme</label>
+      <select id="themeSelect">
+        <option value="dark">Dark Fantasy</option>
+        <option value="silver">Silver Gothic</option>
+        <option value="ember">Ember Crimson</option>
+        <option value="azure">Deep Azure</option>
+      </select>
+    </div>
+  </section>
+</div>
+
+<!-- Info -->
+<div id="info" class="modal"><div class="box">
+  <h3 style="margin:0 0 10px">Card</h3>
+  <div id="infoBody"></div>
+  <div class="actions"><button class="btn" id="infoClose">Close</button></div>
+</div></div>
+
+<!-- Edit -->
+<div id="edit" class="modal"><div class="box">
+  <h3 style="margin:0 0 10px" id="editTitle">Edit</h3>
+  <div class="row2">
+    <label>Name<input id="e_name"></label>
+    <label>Image URL<input id="e_img"></label>
+  </div>
+  <div class="row2">
+    <label id="e_world_label"><span id="e_world_text">World / Type</span><input id="e_world"></label>
+    <label>Rarity<select id="e_rarity"></select></label>
+  </div>
+  <div class="row2" id="kindRow">
+    <label>Kind<select id="e_kind"><option value="unit">Unit</option><option value="item">Item</option><option value="ride">Ride</option><option value="estate">Estate</option></select></label>
+  </div>
+  <div class="row3" id="unitRow1">
+    <label>Level<input id="e_level" type="number" min="1"></label>
+    <label>HP<input id="e_hp" type="number" min="0"></label>
+    <label>STR<input id="e_str" type="number" min="0"></label>
+  </div>
+  <div class="row3" id="unitRow2">
+    <label>DEX<input id="e_dex" type="number" min="0"></label>
+    <label>CON<input id="e_con" type="number" min="0"></label>
+    <label>INT<input id="e_int" type="number" min="0"></label>
+  </div>
+  <div class="row2" id="unitRow3">
+    <label>WIS<input id="e_wis" type="number" min="0"></label>
+    <label>CHA<input id="e_cha" type="number" min="0"></label>
+  </div>
+  <div class="row3" id="itemRow">
+    <label>Level<input id="e_ilevel" type="number" min="1"></label>
+    <label>Power<input id="e_power" type="number" min="0"></label>
+    <label>Type<input id="e_itype"></label>
+  </div>
+  <div class="row2" id="rideCatRow">
+    <label>Ride Category<select id="e_ridecat"><option>Mount</option><option>Vehicle</option><option>Beast</option><option>Construct</option><option>Magical</option></select></label>
+    <label>Origin<input id="e_rideOrigin"></label>
+  </div>
+  <div class="row3" id="rideRow1">
+    <label>Speed<input id="e_rideSpeed" type="number" min="0"></label>
+    <label>Capacity<input id="e_rideCap" type="number" min="0"></label>
+    <label>Endurance<input id="e_rideEnd" type="number" min="0"></label>
+  </div>
+  <div class="row2" id="rideRow2">
+    <label>Price<input id="e_ridePrice" type="number" min="0"></label>
+    <label>Currency<select id="e_rideCur"><option value="coins">Coins</option><option value="gems">Gems</option></select></label>
+  </div>
+  <div class="row2" id="estateCatRow">
+    <label>Estate Category<select id="e_estatecat"><option>Castle</option><option>Fort</option><option>Village</option><option>Manor</option><option>Sanctum</option><option>Stronghold</option></select></label>
+    <label>World<input id="e_estateWorld"></label>
+  </div>
+  <div class="row3" id="estateRow1">
+    <label>Size<input id="e_estateSize" type="number" min="0"></label>
+    <label>Defense<input id="e_estateDef" type="number" min="0"></label>
+    <label>Rooms<input id="e_estateRooms" type="number" min="0"></label>
+  </div>
+  <div class="row2" id="estateRow2">
+    <label>Value<input id="e_estateVal" type="number" min="0"></label>
+    <label>Price<input id="e_estatePrice" type="number" min="0"></label>
+  </div>
+  <div class="row2" id="estateRow3">
+    <label>Currency<select id="e_estateCur"><option value="coins">Coins</option><option value="gems">Gems</option></select></label>
+  </div>
+  <label>Tags (comma)<input id="e_tags"></label>
+  <label>Description<input id="e_desc"></label>
+  <div class="actions"><button class="btn" id="e_save">Save</button><button class="btn" id="e_cancel">Cancel</button></div>
+</div></div>
+
+<!-- Recipe Modal -->
+<div id="recipeModal" class="modal"><div class="box">
+  <h3 id="recipeTitle" style="margin:0 0 10px">New Recipe</h3>
+  <div class="row2">
+    <label>Search materials<input id="recSearch" placeholder="type to search…"></label>
+    <label>Result kind<select id="recType"><option value="unit">Unit</option><option value="item">Item</option><option value="ride">Ride</option><option value="estate">Estate</option></select></label>
+  </div>
+  <div class="row2" style="margin-top:6px">
+    <div><b>Results</b><div id="recResults" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:4px"></div></div>
+    <div><b>Selected</b><div id="recSelected" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:4px"></div></div>
+  </div>
+  <div class="row2" style="margin-top:6px">
+    <label>Output name<input id="recOutName"></label>
+    <label>Output rarity<select id="recOutRarity"></select></label>
+  </div>
+  <div class="actions"><button class="btn" id="recSave">Save</button><button class="btn" id="recCancel">Cancel</button></div>
+</div></div>
+
+<footer>Collector v39 — Built from v35e</footer>
+<div id="err" class="errorbar"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+const $=q=>document.querySelector(q); const $$=q=>Array.from(document.querySelectorAll(q));
+const LS="collector_v39";
+function load(){try{return JSON.parse(localStorage.getItem(LS))||null}catch(e){return null}}
+function save(){localStorage.setItem(LS,JSON.stringify(state))}
+window.addEventListener('error', e=>{ const bar=$('#err'); bar.textContent='JS Error: '+e.message; bar.style.display='block'; });
+
+/* DEFAULT RARITIES (full set condensed) */
+const DEFAULT_RARITIES=[
+  {id:"T1",grade:"F",name:"Common",desc:"Mundane.",colors:["#bfbfbf","#333333"],weight:28,_default:true},
+  {id:"T2",grade:"E",name:"Uncommon",desc:"Growth.",colors:["#708238","#1f3d1f"],weight:22,_default:true},
+  {id:"T3",grade:"D",name:"Rare",desc:"Refined talent.",colors:["#87cefa","#0b3d91"],weight:16,_default:true},
+  {id:"T4",grade:"C",name:"Epic",desc:"Otherworldly spark.",colors:["#8a2be2","#4b0082"],weight:10,_default:true},
+  {id:"T5",grade:"B",name:"Legendary",desc:"Fabled might.",colors:["#ffbf00","#b8860b"],weight:7,_default:true},
+  {id:"T6",grade:"A",name:"Mythic",desc:"Cataclysmic.",colors:["#dc143c","#8b0000"],weight:5,_default:true},
+  {id:"T7",grade:"S",name:"Supreme",desc:"Transcendent.",colors:["#c0c0c0","#ffffff"],weight:4,_default:true},
+  {id:"T8",grade:"SS",name:"Arcane",desc:"Reality-bending.",colors:["#008080","#00ffff"],weight:3,_default:true},
+  {id:"T9",grade:"SSS",name:"Celestial",desc:"Cosmic.",colors:["#4b0082","#ff00ff"],weight:2.5,_default:true},
+  {id:"T10",grade:"U",name:"Ultimate",desc:"Stellar.",colors:["#001f5b","#00aaff"],weight:1.8,_default:true},
+  {id:"TX",grade:"X",name:"Godlike",desc:"Deific.",colors:["#ffd700","#ffffff"],weight:0.9,_default:true},
+  {id:"TY",grade:"Y",name:"Multiversal",desc:"Across realities.",colors:["#ff00ff","#00ffff"],weight:0.5,_default:true},
+  {id:"TZ",grade:"Z",name:"Omnipotent",desc:"Absolute.",colors:["#000000","#ffffff"],weight:0.3,_default:true}
+];
+
+let state=load()||{
+  wallet:{coins:500,gems:120},
+  rarities:JSON.parse(JSON.stringify(DEFAULT_RARITIES)),
+  units:[{name:"Sunbound Hero",rarity:"T5",level:98,hp:140,str:50,dex:30,con:40,int:20,wis:30,cha:50,world:"Solara",tags:["hero"],desc:"Radiant courage.",img:""}],
+  items:[{name:"Aegis of Dawn",rarity:"T4",level:50,power:25,type:"Shield",category:"Shield",tags:["defense"],desc:"Blocks curses.",img:""}],
+  rides:[{name:"Stormrunner Gryphon",rarity:"T4",ridecat:"Mount",origin:"Skyridge",speed:90,cap:2,endurance:6,type:"Flying",tags:["fast"],desc:"Rides thunder.",img:"",owned:false,price:1200,currency:"coins"}],
+  estates:[{name:"Citadel of Dawn",rarity:"T5",estatecat:"Castle",world:"Solara",size:120,def:9,rooms:80,value:150000,tags:["capital"],desc:"Radiant seat.",img:"",owned:false,price:5000,currency:"gems"}],
+  collectionInstances:[],
+  forgeRecipes:[],
+  fusionRecipes:[],
+  fusionMode:"dups",
+  lastTab:"codex",
+  codexKind:"units",
+  imageOnly:true,
+  sumCols:"2",codCols:"2",colCols:"2",
+  summonCurrency:"gems",
+  theme:"dark",
+  myPlayer:{name:"My Player",rarity:"T1",level:1,hp:30,str:5,dex:5,con:5,int:5,wis:5,cha:5,world:"Origin",tags:["player"],desc:"Your own unit.",img:"",lb:0}
+};
+
+/* THEME */
+function applyTheme(){
+  document.body.className='';
+  document.body.classList.add("theme-"+(state.theme||"dark"));
+}
+applyTheme();
+
+/* NAV */
+function openMenu(){ $('#sideNav').classList.add('open'); $('#sideOverlay').classList.add('show'); }
+function closeMenu(){ $('#sideNav').classList.remove('open'); $('#sideOverlay').classList.remove('show'); }
+$('#menuBtn').onclick=openMenu; $('#sideOverlay').onclick=closeMenu;
+function setActiveTab(id){
+  $$('section').forEach(s=>s.classList.toggle('active',s.id===id));
+  $$('#sideNav .menu-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  state.lastTab=id; save(); closeMenu();
+}
+$$('#sideNav .menu-btn').forEach(b=>b.onclick=()=>setActiveTab(b.dataset.tab));
+setActiveTab(state.lastTab||'codex');
+
+/* WALLET */
+function refreshWallet(){ $('#mCoins').textContent=state.wallet.coins; $('#mGems').textContent=state.wallet.gems; }
+refreshWallet();
+
+/* RARITY FILTERS */
+function buildRarityFilters(){
+  ['filterRarity','colFilterRarity','e_rarity','recOutRarity','qp_rarity'].forEach(id=>{
+    const el=$('#'+id); if(!el) return; el.innerHTML='';
+    if(id!=='e_rarity' && id!=='recOutRarity' && id!=='qp_rarity'){ const opt=document.createElement('option'); opt.value=''; opt.textContent='All Rarities'; el.appendChild(opt); }
+    state.rarities.forEach(r=>{ const o=document.createElement('option'); o.value=r.id; o.textContent=r.id+" — "+r.name; el.appendChild(o); });
+  });
+}
+buildRarityFilters();
+
+/* GRADIENT UTIL + BADGES */
+function gradOf(r){ const cols=r.colors&&r.colors.length?r.colors:["#fff","#000"]; return `linear-gradient(90deg, ${cols.join(',')})`; }
+function rb(id){ return state.rarities.find(r=>r.id===id)||state.rarities[0]; }
+
+/* LAYOUT MODES / COLUMNS */
+function setImageOnly(on){ document.body.classList.toggle('compact-img', !!on); state.imageOnly=!!on; save(); }
+setImageOnly(state.imageOnly);
+$('#layoutMode').value=state.imageOnly?'Compact Image Only':'Normal';
+$('#layoutMode2').value=state.imageOnly?'Compact Image Only':'Normal';
+$('#layoutMode3').value=state.imageOnly?'Compact Image Only':'Normal';
+$('#layoutMode').onchange=()=>setImageOnly($('#layoutMode').value==='Compact Image Only');
+$('#layoutMode2').onchange=()=>setImageOnly($('#layoutMode2').value==='Compact Image Only');
+$('#layoutMode3').onchange=()=>setImageOnly($('#layoutMode3').value==='Compact Image Only');
+
+function setGridCols(sel,grid,key){
+  const v=sel.value;
+  if(v==="Auto"){grid.style.removeProperty('grid-template-columns'); state[key]='Auto';}
+  else{ const n=parseInt(v,10)||1; grid.style.gridTemplateColumns=`repeat(${n},1fr)`; state[key]=String(n); }
+  save();
+}
+$('#sumCols').value=state.sumCols||'Auto';
+$('#codCols').value=state.codCols||'Auto';
+$('#colCols').value=state.colCols||'Auto';
+setGridCols($('#sumCols'),$('#summonResult'),'sumCols');
+setGridCols($('#codCols'),$('#codexList'),'codCols');
+setGridCols($('#colCols'),$('#collectionList'),'colCols');
+$('#sumCols').onchange=()=>setGridCols($('#sumCols'),$('#summonResult'),'sumCols');
+$('#codCols').onchange=()=>setGridCols($('#codCols'),$('#codexList'),'codCols');
+$('#colCols').onchange=()=>setGridCols($('#colCols'),$('#collectionList'),'colCols');
+
+/* INFO MODAL */
+function openInfo(o,k){
+  const rows=[]; const add=(k,v)=>rows.push(`<tr><th>${k}</th><td>${v==null||v===''?'-':v}</td></tr>`);
+  add('Kind',k); add('Name',o.name); add('Rarity',o.rarity);
+  if(k==='unit'){ ['level','hp','str','dex','con','int','wis','cha','world'].forEach(x=>add(x.toUpperCase(),o[x])); }
+  if(k==='item'){ ['level','power','type','category'].forEach(x=>add(x.toUpperCase(),o[x])); }
+  if(k==='ride'){ ['ridecat','origin','speed','cap','endurance','price','currency'].forEach(x=>add(x.toUpperCase(),o[x])); }
+  if(k==='estate'){ ['estatecat','world','size','def','rooms','value','price','currency'].forEach(x=>add(x.toUpperCase(),o[x])); }
+  add('Desc',o.desc||'');
+  $('#infoBody').innerHTML=`<table>${rows.join('')}</table>`;
+  $('#info').style.display='flex';
+}
+$('#infoClose').onclick=()=>$('#info').style.display='none';
+
+/* CARD RENDER */
+function priceBadge(o){ if(o.price==null) return ''; const icon=(o.currency||'coins')==='gems'?'💎':'🪙'; return `<span class="badge price">${icon} ${o.price}</span>`; }
+function cardEl(o,kind,inCodex=false){
+  const r=rb(o.rarity);
+  const grad=gradOf(r);
+  const el=document.createElement('div'); el.className=`card kind-${kind}`;
+  const ownedCount = inCodex ? state.collectionInstances.filter(ins=>ins._k===kind && ins.name===o.name && ins.rarity===o.rarity).length : 0;
+  const copies = inCodex && ownedCount>0 ? `x${ownedCount}` : '';
+  const lb=(o.rarity==='TZ' && (o.lb||0)>0)?`<div class="lbBadge">LB ${o.lb}/5</div>`:'';
+  let sub='', stats='', world='';
+  if(kind==='unit'){ sub=`${r.id} • Lv.${o.level||1}/100`; stats=`HP ${o.hp||0} | STR ${o.str||0} | DEX ${o.dex||0} | CON ${o.con||0} | INT ${o.int||0} | WIS ${o.wis||0} | CHA ${o.cha||0}`; world=o.world||''; }
+  else if(kind==='item'){ sub=`${r.id} • ${o.type||o.category||'Item'}`; stats=`Power ${o.power||0} | Lv.${o.level||1}`; world=o.type||o.category||''; }
+  else if(kind==='ride'){ sub=`${r.id} • ${o.ridecat||o.type||'Ride'}`; stats=`Speed ${o.speed||0} | Cap ${o.cap||0} | End ${o.endurance||0}h`; world=o.origin||o.type||''; }
+  else if(kind==='estate'){ sub=`${r.id} • ${o.estatecat||'Estate'}`; stats=`Size ${o.size||0} | Def ${o.def||0} | Rooms ${o.rooms||0}`; world=o.world||o.estatecat||''; }
+  const tags=(o.tags||[]).map(t=>`<span class="badge">#${t}</span>`).join('');
+  const showBuy = inCodex && (kind==='ride' || kind==='estate') && !o.owned && (o.price||0)>0;
+  el.innerHTML=`<div class="frame" style="--grad:${grad}">
+      <div class="img" data-img="${(o.img||'').replace(/"/g,'&quot;')}" style="background-image:url('${(o.img||'').replace(/'/g,'%27')}')"></div>
+      <div class="overlay"></div>
+      ${lb}
+      ${copies?`<div class="counter">${copies}</div>`:''}
+      <span class="rtxt rname" style="background-image:${grad}">${r.name}</span>
+      <span class="rtxt rgrade" style="background-image:${grad}">${r.grade}</span>
+      <span class="rtxt rtier" style="background-image:${grad}">${r.id}</span>
+    </div>
+    <div class="info">
+      <div class="title">${o.name||'Unnamed'}</div>
+      <div class="sub">${sub}</div>
+      <div class="desc">${o.desc||''}</div>
+      <div class="stats">${stats}</div>
+      <div class="meta">
+        ${world?`<span class="badge">${world}</span>`:''}
+        ${(kind==='ride'||kind==='estate')?priceBadge(o):''}
+        ${tags}
+      </div>
+      <div class="meta actions editRow">
+        ${inCodex?'<button class="btn btn-addcopy">+ Copy</button><button class="btn btn-remcopy">− Copy</button>':''}
+        <button class="btn btn-info">Info</button>
+        <button class="btn btn-edit">Edit</button>
+        ${inCodex?'<button class="btn btn-own">'+(o.owned?'Unown':'Mark Owned')+'</button>':''}
+        ${inCodex?'<button class="btn btn-del">Del</button>':''}
+        ${showBuy?'<button class="btn btn-buy">Buy</button>':''}
+      </div>
+    </div>`;
+  el.querySelector('.img').onclick=()=>openInfo(o,kind);
+  el.querySelector('.btn-info').onclick=()=>openInfo(o,kind);
+  el.querySelector('.btn-edit').onclick=()=>openEdit(o,kind,!inCodex && !!o.instanceId);
+  const ownBtn=el.querySelector('.btn-own');
+  if(ownBtn){
+    ownBtn.onclick=()=>{
+      o.owned=!o.owned;
+      if(inCodex){
+        if(o.owned){ const inst=JSON.parse(JSON.stringify(o)); inst.instanceId='INS-'+Math.random().toString(36).slice(2); inst._k=kind; state.collectionInstances.unshift(inst); }
+        else{ state.collectionInstances = state.collectionInstances.filter(ins=>!(ins._k===kind && ins.name===o.name && ins.rarity===o.rarity)); }
+      }
+      save(); renderAll();
+    };
+  }
+  const delBtn=el.querySelector('.btn-del');
+  if(delBtn){
+    delBtn.onclick=()=>{
+      if(!confirm('Delete?')) return;
+      if(inCodex){
+        const arr=(kind==='unit')?state.units:(kind==='item')?state.items:(kind==='ride')?state.rides:state.estates;
+        const idx=arr.indexOf(o); if(idx>=0) arr.splice(idx,1);
+        state.collectionInstances = state.collectionInstances.filter(ins=>!(ins._k===kind && ins.name===o.name && ins.rarity===o.rarity));
+      }
+      save(); renderAll();
+    };
+  }
+  const addBtn=el.querySelector('.btn-addcopy'); if(addBtn){ addBtn.onclick=()=>{ const inst=JSON.parse(JSON.stringify(o)); inst.instanceId='INS-'+Math.random().toString(36).slice(2); inst._k=kind; inst.owned=true; state.collectionInstances.unshift(inst); o.owned=true; save(); renderAll(); } }
+  const remBtn=el.querySelector('.btn-remcopy'); if(remBtn){ remBtn.onclick=()=>{
+    let removed=false;
+    state.collectionInstances = state.collectionInstances.filter(ins=>{
+      if(!removed && ins._k===kind && ins.name===o.name && ins.rarity===o.rarity){ removed=true; return false; }
+      return true;
+    });
+    save(); renderAll();
+  } }
+  const buyBtn=el.querySelector('.btn-buy'); if(buyBtn){ buyBtn.onclick=()=>{
+    const cur=o.currency||'coins'; const cost=o.price||0;
+    if(cur==='gems'){ if(state.wallet.gems<cost){alert('Not enough gems'); return;} state.wallet.gems-=cost; }
+    else{ if(state.wallet.coins<cost){alert('Not enough coins'); return;} state.wallet.coins-=cost; }
+    o.owned=true; const inst=JSON.parse(JSON.stringify(o)); inst.instanceId='INS-'+Math.random().toString(36).slice(2); inst._k=kind; state.collectionInstances.unshift(inst); save(); refreshWallet(); renderAll();
+  }; }
+  return el;
+}
+
+/* EDIT MODAL */
+let editing=null, editingKind='unit', editingIsInstance=false, editingNew=false;
+function showEditSections(kind){
+  const show=(id,yes)=>{ const el=$(id); if(el) el.style.display=yes?'grid':'none'; };
+  show('#unitRow1',kind==='unit'); show('#unitRow2',kind==='unit'); show('#unitRow3',kind==='unit');
+  show('#itemRow',kind==='item');
+  show('#rideCatRow',kind==='ride'); show('#rideRow1',kind==='ride'); show('#rideRow2',kind==='ride');
+  show('#estateCatRow',kind==='estate'); show('#estateRow1',kind==='estate'); show('#estateRow2',kind==='estate'); show('#estateRow3',kind==='estate');
+  $('#e_world_text').textContent = (kind==='unit'||kind==='estate') ? 'World' : 'Type';
+}
+$('#e_kind').onchange=()=>{ editingKind=$('#e_kind').value; showEditSections(editingKind); };
+
+function openEdit(o,kind,isInstance,isNew){
+  editing=o; editingKind=kind; editingIsInstance=!!isInstance; editingNew=!!isNew;
+  $('#editTitle').textContent=isNew?'Add New':'Edit';
+  $('#e_kind').value=kind; showEditSections(kind);
+  $('#e_name').value=o.name||'';
+  $('#e_img').value=o.img||'';
+  $('#e_world').value=(kind==='unit'||kind==='estate')?(o.world||''):(o.type||'');
+  $('#e_rarity').value=o.rarity||state.rarities[0].id;
+  $('#e_level').value=o.level||1; $('#e_hp').value=o.hp||0; $('#e_str').value=o.str||0; $('#e_dex').value=o.dex||0; $('#e_con').value=o.con||0; $('#e_int').value=o.int||0; $('#e_wis').value=o.wis||0; $('#e_cha').value=o.cha||0;
+  $('#e_ilevel').value=o.level||1; $('#e_power').value=o.power||0; $('#e_itype').value=o.type||'';
+  $('#e_ridecat').value=o.ridecat||'Mount'; $('#e_rideOrigin').value=o.origin||''; $('#e_rideSpeed').value=o.speed||0; $('#e_rideCap').value=o.cap||0; $('#e_rideEnd').value=o.endurance||0; $('#e_ridePrice').value=o.price||0; $('#e_rideCur').value=o.currency||'coins';
+  $('#e_estatecat').value=o.estatecat||'Castle'; $('#e_estateWorld').value=o.world||''; $('#e_estateSize').value=o.size||0; $('#e_estateDef').value=o.def||0; $('#e_estateRooms').value=o.rooms||0; $('#e_estateVal').value=o.value||0; $('#e_estatePrice').value=o.price||0; $('#e_estateCur').value=o.currency||'coins';
+  $('#e_tags').value=(o.tags||[]).join(', ');
+  $('#e_desc').value=o.desc||'';
+  $('#edit').style.display='flex';
+}
+$('#e_cancel').onclick=()=>$('#edit').style.display='none';
+$('#e_save').onclick=()=>{
+  if(!editing) return;
+  const k=$('#e_kind').value;
+  const target = editingIsInstance ? state.collectionInstances.find(x=>x.instanceId===editing.instanceId) : editing;
+  target.name=$('#e_name').value.trim()||'Unnamed';
+  target.img=$('#e_img').value.trim();
+  target.rarity=$('#e_rarity').value;
+  if(k==='unit'){
+    target.world=$('#e_world').value.trim();
+    target.level=parseInt($('#e_level').value)||1;
+    target.hp=parseInt($('#e_hp').value)||0;
+    target.str=parseInt($('#e_str').value)||0;
+    target.dex=parseInt($('#e_dex').value)||0;
+    target.con=parseInt($('#e_con').value)||0;
+    target.int=parseInt($('#e_int').value)||0;
+    target.wis=parseInt($('#e_wis').value)||0;
+    target.cha=parseInt($('#e_cha').value)||0;
+  }else if(k==='item'){
+    target.type=$('#e_itype').value.trim();
+    target.level=parseInt($('#e_ilevel').value)||1;
+    target.power=parseInt($('#e_power').value)||0;
+  }else if(k==='ride'){
+    target.type=$('#e_world').value.trim();
+    target.ridecat=$('#e_ridecat').value;
+    target.origin=$('#e_rideOrigin').value.trim();
+    target.speed=parseInt($('#e_rideSpeed').value)||0;
+    target.cap=parseInt($('#e_rideCap').value)||0;
+    target.endurance=parseInt($('#e_rideEnd').value)||0;
+    target.price=parseInt($('#e_ridePrice').value)||0;
+    target.currency=$('#e_rideCur').value;
+  }else if(k==='estate'){
+    target.world=$('#e_estateWorld').value.trim();
+    target.estatecat=$('#e_estatecat').value;
+    target.size=parseInt($('#e_estateSize').value)||0;
+    target.def=parseInt($('#e_estateDef').value)||0;
+    target.rooms=parseInt($('#e_estateRooms').value)||0;
+    target.value=parseInt($('#e_estateVal').value)||0;
+    target.price=parseInt($('#e_estatePrice').value)||0;
+    target.currency=$('#e_estateCur').value;
+  }
+  target.tags=$('#e_tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  target.desc=$('#e_desc').value.trim();
+  save(); $('#edit').style.display='none'; renderAll();
+  editing=null; editingIsInstance=false; editingNew=false;
+};
+
+/* CODEX */
+function setCodexKind(k){ state.codexKind=k; save(); $$('#codex .subtab').forEach(b=>b.classList.toggle('active',b.dataset.kind===k)); renderCodex(); }
+$$('#codex .subtab').forEach(b=>b.onclick=()=>setCodexKind(b.dataset.kind));
+setCodexKind(state.codexKind||'units');
+function currentCodexArr(){
+  const k=state.codexKind;
+  if(k==='units') return state.units;
+  if(k==='items') return state.items;
+  if(k==='rides') return state.rides;
+  if(k==='estates') return state.estates;
+  return state.units;
+}
+function rarityIndex(id){ return Math.max(0,state.rarities.findIndex(r=>r.id===id)); }
+function renderCodex(){
+  const box=$('#codexList'); box.innerHTML='';
+  const q=($('#search').value||'').toLowerCase();
+  const rf=$('#filterRarity').value;
+  const of=$('#ownedFilter').value;
+  const sort=$('#sortBy').value;
+  let arr=currentCodexArr().slice();
+  arr=arr.filter(o=>{
+    const kind = state.codexKind.slice(0,-1);
+    if(q && !((o.name||'').toLowerCase().includes(q) || (o.world||'').toLowerCase().includes(q) || (o.type||'').toLowerCase().includes(q) || (o.tags||[]).some(t=>t.toLowerCase().includes(q)))) return false;
+    if(rf && o.rarity!==rf) return false;
+    const ownedCount=state.collectionInstances.filter(ins=>ins._k===kind && ins.name===o.name && ins.rarity===o.rarity).length;
+    if(of==='owned' && ownedCount<=0) return false;
+    if(of==='unowned' && ownedCount>0) return false;
+    return true;
+  });
+  arr.sort((a,b)=>{
+    if(sort==='name') return (a.name||'').localeCompare(b.name||'');
+    if(sort==='tier') return rarityIndex(a.rarity)-rarityIndex(b.rarity);
+    if(sort==='level') return (b.level||0)-(a.level||0);
+    return 0;
+  });
+  arr.forEach(o=>box.appendChild(cardEl(o,state.codexKind.slice(0,-1),true)));
+}
+['search','filterRarity','ownedFilter','sortBy'].forEach(id=>$('#'+id).oninput=renderCodex);
+$('#addCard').onclick=()=>{
+  const k=state.codexKind;
+  let base;
+  if(k==='units'){ base={name:"New Unit",rarity:state.rarities[0].id,level:1,hp:10,str:1,dex:1,con:1,int:1,wis:1,cha:1,world:"",tags:[],desc:"",img:"",owned:false}; }
+  else if(k==='items'){ base={name:"New Item",rarity:state.rarities[0].id,level:1,power:5,type:"Misc",tags:[],desc:"",img:"",owned:false}; }
+  else if(k==='rides'){ base={name:"New Ride",rarity:state.rarities[0].id,ridecat:"Mount",origin:"",speed:30,cap:1,endurance:4,type:"",tags:[],desc:"",img:"",owned:false,price:0,currency:"coins"}; }
+  else { base={name:"New Estate",rarity:state.rarities[0].id,estatecat:"Manor",world:"",size:5,def:1,rooms:5,value:1000,tags:[],desc:"",img:"",owned:false,price:0,currency:"coins"}; }
+  openEdit(base,k.slice(0,-1),false,true);
+};
+
+/* COLLECTION */
+function renderCollection(){
+  const box=$('#collectionList'); box.innerHTML='';
+  const q=($('#colSearch').value||'').toLowerCase();
+  const rf=$('#colFilterRarity').value;
+  const of=$('#colOwnedFilter').value;
+  const sort=$('#colSortBy').value;
+  const typ=$('#colType').value;
+  let arr=state.collectionInstances.slice();
+  arr=arr.filter(o=>{
+    if(q && !((o.name||'').toLowerCase().includes(q) || (o.world||'').toLowerCase().includes(q) || (o.type||'').toLowerCase().includes(q) || (o.tags||[]).some(t=>t.toLowerCase().includes(q)))) return false;
+    if(rf && o.rarity!==rf) return false;
+    if(typ && o._k!==typ) return false;
+    if(of==='owned' && !o.owned) return false;
+    if(of==='unowned' && o.owned) return false;
+    return true;
+  });
+  arr.sort((a,b)=>{
+    if(sort==='name') return (a.name||'').localeCompare(b.name||'');
+    if(sort==='tier') return rarityIndex(a.rarity)-rarityIndex(b.rarity);
+    return (b.level||0)-(a.level||0);
+  });
+  arr.forEach(o=>box.appendChild(cardEl(o,o._k)));
+  $('#collectionStats').textContent=`Shown ${arr.length}`;
+}
+['colSearch','colFilterRarity','colOwnedFilter','colSortBy','colType'].forEach(id=>$('#'+id).oninput=renderCollection);
+
+/* SUMMON */
+const COSTS={gems:{single:10,ten:90},coins:{single:100,ten:900}};
+function updateSummonButtons(){
+  const cur=state.summonCurrency;
+  $('#currency').value=cur;
+  $('#singlePull').textContent=`Single (${cur==='gems'?'💎':'🪙'} ${COSTS[cur].single})`;
+  $('#tenPull').textContent=`x10 (${cur==='gems'?'💎':'🪙'} ${COSTS[cur].ten})`;
+  $('#oddsHint').textContent=cur==='gems'?'Odds: boosted':'Odds: normal';
+}
+$('#currency').onchange=()=>{ state.summonCurrency=$('#currency').value; save(); updateSummonButtons(); };
+updateSummonButtons();
+function rollR(cur){
+  const base=state.rarities.map(r=>({r,w:r.weight||1}));
+  if(cur==='gems'){
+    const mult={T5:1.15,T6:1.25,T7:1.35,T8:1.45,T9:1.6,T10:1.75,TX:2,TY:2.1,TZ:2.2};
+    base.forEach(o=>o.w*=(mult[o.r.id]||1));
+  }
+  const sum=base.reduce((s,o)=>s+o.w,0); let x=Math.random()*sum;
+  for(const o of base){ if(x<o.w) return o.r; x-=o.w; }
+  return base[0].r;
+}
+function pool(kind,tid){
+  const arr=(kind==='unit')?state.units:(kind==='item')?state.items:(kind==='ride')?state.rides:state.estates;
+  const hit=arr.filter(a=>a.rarity===tid);
+  if(hit.length) return JSON.parse(JSON.stringify(hit[Math.floor(Math.random()*hit.length)]));
+  if(kind==='unit') return {name:`${tid} Unit`,rarity:tid,level:1,hp:10,str:1,dex:1,con:1,int:1,wis:1,cha:1,world:"",tags:[],desc:"",img:"",owned:false};
+  if(kind==='item') return {name:`${tid} Item`,rarity:tid,level:1,power:5,type:"Misc",tags:[],desc:"",img:"",owned:false};
+  if(kind==='ride') return {name:`${tid} Ride`,rarity:tid,ridecat:"Mount",origin:"",speed:30,cap:1,endurance:4,type:"",tags:[],desc:"",img:"",owned:false,price:0,currency:"coins"};
+  return {name:`${tid} Estate`,rarity:tid,estatecat:"Manor",world:"",size:5,def:1,rooms:5,value:1000,tags:[],desc:"",img:"",owned:false,price:0,currency:"coins"};
+}
+function doPulls(n,cur){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const rnd=Math.random();
+    const kind = rnd<0.65?'unit':rnd<0.85?'item':rnd<0.95?'ride':'estate';
+    const r=rollR(cur);
+    const base=pool(kind,r.id);
+    const cod=(kind==='unit')?state.units:(kind==='item')?state.items:(kind==='ride')?state.rides:state.estates;
+    const ex=cod.find(c=>c.name===base.name && c.rarity===base.rarity);
+    let final=base;
+    if(ex){ ex.owned=true; final=JSON.parse(JSON.stringify(ex)); }
+    else { base.owned=true; cod.unshift(base); }
+    const inst=JSON.parse(JSON.stringify(final)); inst.instanceId='INS-'+Math.random().toString(36).slice(2); inst._k=kind; inst.owned=true; state.collectionInstances.unshift(inst);
+    out.push(final);
+  }
+  save(); refreshWallet(); renderAll(); renderSummon(out);
+}
+function renderSummon(list){
+  const box=$('#summonResult'); box.innerHTML='';
+  list.forEach(o=>{ const kind=('level' in o)?'unit':('power' in o)?'item':('ridecat' in o)?'ride':'estate'; box.appendChild(cardEl(o,kind)); });
+}
+$('#singlePull').onclick=()=>{
+  const cur=state.summonCurrency;
+  const cost=COSTS[cur].single;
+  if(cur==='gems'){ if(state.wallet.gems<cost){alert('Not enough gems'); return;} state.wallet.gems-=cost; }
+  else{ if(state.wallet.coins<cost){alert('Not enough coins'); return;} state.wallet.coins-=cost; }
+  doPulls(1,cur);
+};
+$('#tenPull').onclick=()=>{
+  const cur=state.summonCurrency;
+  const cost=COSTS[cur].ten;
+  if(cur==='gems'){ if(state.wallet.gems<cost){alert('Not enough gems'); return;} state.wallet.gems-=cost; }
+  else{ if(state.wallet.coins<cost){alert('Not enough coins'); return;} state.wallet.coins-=cost; }
+  doPulls(10,cur);
+};
+
+/* RARITIES */
+function renderRarities(){
+  const list=$('#r_list'); list.innerHTML='';
+  state.rarities.forEach(r=>{
+    const d=document.createElement('div'); d.className='card'; const g=gradOf(r);
+    d.innerHTML=`<div class="info">
+      <div class="title">${r.id} — ${r.name} <span class="badge">${r.grade}</span></div>
+      <div class="meta"><span class="badge" style="background:${g}">Preview</span></div>
+      <div class="meta actions">${!r._default?'<button class="btn r-del">Delete</button>':''}</div>
+    </div>`;
+    if(!r._default){
+      d.querySelector('.r-del').onclick=()=>{
+        if(!confirm('Delete rarity '+r.id+'?')) return;
+        const fallback=state.rarities[0].id;
+        ['units','items','rides','estates','collectionInstances'].forEach(k=>{
+          state[k].forEach(o=>{ if(o.rarity===r.id) o.rarity=fallback; });
+        });
+        state.rarities=state.rarities.filter(x=>x.id!==r.id); save(); buildRarityFilters(); renderAll(); renderRarities();
+      };
+    }
+    list.appendChild(d);
+  });
+}
+$('#r_add').onclick=()=>{
+  const id=prompt('Tier ID (e.g. T11)'); if(!id) return;
+  if(state.rarities.some(r=>r.id===id)){ alert('Rarity exists'); return; }
+  const name=prompt('Name')||id; const grade=prompt('Grade (A/B/...)','A')||'A';
+  const colors=[]; const n=parseInt(prompt('How many gradient colors? (2-5)','2')||'2',10);
+  for(let i=0;i<Math.max(2,Math.min(5,isNaN(n)?2:n));i++){ colors.push(prompt('Color #'+(i+1),'#ffffff')||'#ffffff'); }
+  state.rarities.push({id,grade,name,desc:'',colors,weight:1,_default:false});
+  save(); buildRarityFilters(); renderRarities();
+};
+$('#r_reset').onclick=()=>{ if(confirm('Reset rarities?')){ state.rarities=JSON.parse(JSON.stringify(DEFAULT_RARITIES)); save(); buildRarityFilters(); renderRarities(); renderAll(); } };
+renderRarities();
+
+/* RECIPE POPUP */
+let recipeMode='forge';
+$('#addRecipe').onclick=()=>{ recipeMode='forge'; openRecipeModal(); };
+$('#addFusionRecipe').onclick=()=>{ recipeMode='fusion'; openRecipeModal(); };
+function allLibrary(){
+  return [
+    ...state.units.map(o=>({kind:'unit',obj:o})),
+    ...state.items.map(o=>({kind:'item',obj:o})),
+    ...state.rides.map(o=>({kind:'ride',obj:o})),
+    ...state.estates.map(o=>({kind:'estate',obj:o}))
+  ];
+}
+function openRecipeModal(){
+  $('#recSearch').value='';
+  $('#recType').value='unit';
+  $('#recOutName').value='';
+  $('#recOutRarity').innerHTML = state.rarities.map(r=>`<option value="${r.id}">${r.id}</option>`).join('');
+  $('#recResults').innerHTML='';
+  $('#recSelected').innerHTML='';
+  $('#recipeTitle').textContent = recipeMode==='forge' ? 'New Forge Recipe' : 'New Fusion Recipe';
+  $('#recipeModal').style.display='flex';
+  refreshRecResults();
+}
+$('#recCancel').onclick=()=>$('#recipeModal').style.display='none';
+function refreshRecResults(){
+  const q=($('#recSearch').value||'').toLowerCase();
+  const kind=$('#recType').value;
+  const pool=allLibrary().filter(x=>x.kind===kind && (!q || (x.obj.name||'').toLowerCase().includes(q) || (x.obj.tags||[]).some(t=>t.toLowerCase().includes(q))));
+  const box=$('#recResults'); box.innerHTML='';
+  pool.slice(0,30).forEach(x=>{
+    const div=document.createElement('div'); div.className='btn small'; div.textContent=x.obj.name; div.onclick=()=>addMatToSelected(x.kind,x.obj); box.appendChild(div);
+  });
+}
+$('#recSearch').oninput=refreshRecResults; $('#recType').onchange=refreshRecResults;
+function addMatToSelected(kind,obj){
+  const box=$('#recSelected');
+  const div=document.createElement('div'); div.className='btn small'; div.textContent=kind+': '+obj.name; div.dataset.kind=kind; div.dataset.name=obj.name; div.onclick=()=>div.remove();
+  box.appendChild(div);
+}
+$('#recSave').onclick=()=>{
+  const outName=$('#recOutName').value.trim(); if(!outName){ alert('Output name required'); return; }
+  const outR=$('#recOutRarity').value;
+  const mats=Array.from($('#recSelected').children).map(x=>({kind:x.dataset.kind,name:x.dataset.name}));
+  const recipe={ id:'REC-'+Math.random().toString(36).slice(2), materials:mats, output:{name:outName,rarity:outR} };
+  if(recipeMode==='forge'){ state.forgeRecipes.push(recipe); renderForge(); }
+  else{ state.fusionRecipes.push(recipe); renderFusion(); }
+  save(); $('#recipeModal').style.display='none';
+};
+function renderForge(){
+  const box=$('#forgeList'); box.innerHTML='';
+  if(!state.forgeRecipes.length){ box.innerHTML='<div class="desc">No forge recipes.</div>'; return; }
+  state.forgeRecipes.forEach(r=>{
+    const d=document.createElement('div'); d.className='card'; d.innerHTML=`
+      <div class="info">
+        <div class="title">Forge: ${r.output.name} <span class="badge">${r.output.rarity}</span></div>
+        <div class="meta">${r.materials.map(m=>`<span class="badge">${m.kind}: ${m.name}</span>`).join('')}</div>
+        <div class="meta actions"><button class="btn btn-use">Forge</button><button class="btn btn-del">Del</button></div>
+      </div>`;
+    d.querySelector('.btn-use').onclick=()=>alert('Forged: '+r.output.name);
+    d.querySelector('.btn-del').onclick=()=>{ if(confirm('Delete recipe?')){ state.forgeRecipes=state.forgeRecipes.filter(x=>x.id!==r.id); save(); renderForge(); } };
+    box.appendChild(d);
+  });
+}
+function renderFusion(){
+  const box=$('#fusionList'); box.innerHTML='';
+  if(state.fusionMode==='dups'){
+    const counts={};
+    state.collectionInstances.forEach(i=>{ if(i._k==='unit'){ const key=i.name+'|'+i.rarity; counts[key]=(counts[key]||0)+1; } });
+    const entries=Object.entries(counts).filter(([,n])=>n>1);
+    if(!entries.length){ box.innerHTML='<div class="desc">No duplicates.</div>'; return; }
+    entries.forEach(([key,n])=>{
+      const [name,rar]=key.split('|');
+      const d=document.createElement('div'); d.className='card'; d.innerHTML=`
+        <div class="info">
+          <div class="title">Duplicate Fusion</div>
+          <div class="sub">${name} (${rar}) • x${n}</div>
+          <div class="meta actions"><button class="btn btn-fuse">Fuse 2 → 1</button></div>
+        </div>`;
+      d.querySelector('.btn-fuse').onclick=()=>{
+        let removed=0;
+        state.collectionInstances=state.collectionInstances.filter(ins=>{
+          if(removed<2 && ins._k==='unit' && ins.name===name && ins.rarity===rar){ removed++; return false; }
+          return true;
+        });
+        const base=state.units.find(u=>u.name===name && u.rarity===rar) || {name,rarity:rar,level:1};
+        const inst=JSON.parse(JSON.stringify(base)); inst.instanceId='INS-'+Math.random().toString(36).slice(2); inst._k='unit'; inst.level=(base.level||1)+1;
+        state.collectionInstances.unshift(inst); save(); renderFusion(); renderCollection(); renderCodex();
+      };
+      box.appendChild(d);
+    });
+  }else{
+    if(!state.fusionRecipes.length){ box.innerHTML='<div class="desc">No fusion recipes.</div>'; return; }
+    state.fusionRecipes.forEach(r=>{
+      const d=document.createElement('div'); d.className='card'; d.innerHTML=`
+        <div class="info">
+          <div class="title">Fusion: ${r.output.name} <span class="badge">${r.output.rarity}</span></div>
+          <div class="meta">${r.materials.map(m=>`<span class="badge">${m.kind}: ${m.name}</span>`).join('')}</div>
+          <div class="meta actions"><button class="btn btn-use">Fuse</button><button class="btn btn-del">Del</button></div>
+        </div>`;
+      d.querySelector('.btn-use').onclick=()=>alert('Fused: '+r.output.name);
+      d.querySelector('.btn-del').onclick=()=>{ if(confirm('Delete?')){ state.fusionRecipes=state.fusionRecipes.filter(x=>x.id!==r.id); save(); renderFusion(); } };
+      box.appendChild(d);
+    });
+  }
+}
+$('#fusionTabs .subtab[data-fmode="'+state.fusionMode+'"]').classList.add('active');
+$$('#fusionTabs .subtab').forEach(b=>b.onclick=()=>{ state.fusionMode=b.dataset.fmode; save(); $$('#fusionTabs .subtab').forEach(x=>x.classList.toggle('active',x.dataset.fmode===state.fusionMode)); renderFusion(); });
+renderForge(); renderFusion();
+
+/* SETTINGS */
+$('#exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='collector_backup.json'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+};
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const obj=JSON.parse(rd.result);
+      if(!obj || typeof obj!=='object') throw new Error('invalid');
+      state=obj;
+      if(!state.myPlayer){
+        state.myPlayer={name:"My Player",rarity:"T1",level:1,hp:30,str:5,dex:5,con:5,int:5,wis:5,cha:5,world:"Origin",tags:["player"],desc:"Your own unit.",img:"",lb:0};
+      }
+      save();
+      applyTheme();
+      buildRarityFilters();
+      renderRarities(); renderAll(); renderForge(); renderFusion(); refreshWallet();
+      $('#themeSelect').value=state.theme||'dark';
+      alert('Imported.');
+    }catch(err){ alert('Import failed: '+err.message); }
+  };
+  rd.readAsText(file);
+};
+$('#wipeBtn').onclick=()=>{
+  if(!confirm('Delete ALL Collector data?')) return;
+  Object.keys(localStorage).forEach(k=>{ if(k.startsWith('collector_')||k===LS) localStorage.removeItem(k); });
+  state={wallet:{coins:0,gems:0},rarities:JSON.parse(JSON.stringify(DEFAULT_RARITIES)),units:[],items:[],rides:[],estates:[],collectionInstances:[],forgeRecipes:[],fusionRecipes:[],fusionMode:'dups',lastTab:'codex',codexKind:'units',imageOnly:true,sumCols:'2',codCols:'2',colCols:'2',summonCurrency:'gems',theme:'dark',myPlayer:{name:"My Player",rarity:"T1",level:1,hp:30,str:5,dex:5,con:5,int:5,wis:5,cha:5,world:"Origin",tags:["player"],desc:"Your own unit.",img:"",lb:0}};
+  save(); applyTheme(); buildRarityFilters(); renderRarities(); renderAll(); renderForge(); renderFusion(); refreshWallet();
+  $('#themeSelect').value='dark';
+  alert('All data cleared.');
+};
+$('#themeSelect').value=state.theme||'dark';
+$('#themeSelect').onchange=e=>{ state.theme=e.target.value; save(); applyTheme(); renderAll(); };
+
+/* MY PLAYER TAB */
+function renderMyPlayer(){
+  const box=$('#myPlayerView'); box.innerHTML='';
+  const p=state.myPlayer;
+  const r=rb(p.rarity); const grad=gradOf(r);
+  const el=document.createElement('div'); el.className='card kind-unit';
+  el.innerHTML=`<div class="frame" style="--grad:${grad}">
+      <div class="img" style="background-image:url('${(p.img||'').replace(/'/g,'%27')}')"></div>
+      <div class="overlay"></div>
+      ${p.rarity==='TZ' && (p.lb||0)>0?`<div class="lbBadge">LB ${p.lb}/5</div>`:''}
+      <span class="rtxt rname" style="background-image:${grad}">${r.name}</span>
+      <span class="rtxt rgrade" style="background-image:${grad}">${r.grade}</span>
+      <span class="rtxt rtier" style="background-image:${grad}">${r.id}</span>
+    </div>
+    <div class="info">
+      <div class="title">${p.name||'My Player'}</div>
+      <div class="sub">${r.id} • Lv.${p.level||1}/100</div>
+      <div class="stats">HP ${p.hp||0} | STR ${p.str||0} | DEX ${p.dex||0} | CON ${p.con||0} | INT ${p.int||0} | WIS ${p.wis||0} | CHA ${p.cha||0}</div>
+      <div class="meta actions">
+        <button class="btn" id="btnInfo">Info</button>
+        <button class="btn" id="btnEdit">Edit</button>
+      </div>
+    </div>`;
+  el.querySelector('#btnInfo').onclick=()=>openInfo(p,'unit');
+  el.querySelector('#btnEdit').onclick=()=>openEdit(p,'unit',false,false);
+  box.appendChild(el);
+
+  // sync quick form
+  $('#qp_name').value=p.name||''; $('#qp_img').value=p.img||''; $('#qp_rarity').value=p.rarity||'T1';
+}
+$('#mp_edit').onclick=()=>openEdit(state.myPlayer,'unit',false,false);
+$('#mp_lv1').onclick=()=>{ state.myPlayer.level = Math.min(100, (state.myPlayer.level||1)+1); save(); renderMyPlayer(); };
+$('#mp_lvmax').onclick=()=>{ state.myPlayer.level=100; save(); renderMyPlayer(); };
+function nextRarity(id){
+  const idx=state.rarities.findIndex(r=>r.id===id);
+  if(idx<0) return id;
+  if(idx===state.rarities.length-1) return id;
+  return state.rarities[idx+1].id;
+}
+$('#mp_ascend').onclick=()=>{
+  const p=state.myPlayer;
+  if(p.level<100){ alert('Need level 100'); return; }
+  if(p.rarity==="TZ"){ alert('Max tier reached'); return; }
+  const nr=nextRarity(p.rarity);
+  p.rarity=nr;
+  p.level=1;
+  p.hp+=20; p.str+=5; p.dex+=5; p.con+=5; p.int+=4; p.wis+=4; p.cha+=4;
+  save(); renderMyPlayer();
+};
+$('#mp_lb').onclick=()=>{
+  const p=state.myPlayer;
+  if(p.rarity!=="TZ"){ alert('Limit break only for TZ'); return; }
+  if((p.lb||0)>=5){ alert('Max limit break'); return; }
+  p.lb=(p.lb||0)+1;
+  p.hp+=50; p.str+=10; p.dex+=10; p.con+=10; p.int+=8; p.wis+=8; p.cha+=8;
+  save(); renderMyPlayer();
+};
+$('#qp_save').onclick=()=>{ const p=state.myPlayer; p.name=$('#qp_name').value.trim()||p.name; p.img=$('#qp_img').value.trim(); p.rarity=$('#qp_rarity').value; save(); renderMyPlayer(); };
+
+/* FINAL RENDER */
+function renderAll(){ renderCodex(); renderCollection(); renderMyPlayer(); }
+renderAll();
+});
+</script>
+</body>
+</html>
