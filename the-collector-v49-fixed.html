@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Collector — v48</title>
+<style>
+:root{
+  --bg:#0b0b11;--panel:#151525;--ink:#f4f2ff;--muted:#c6bed9;
+  --danger:#ff6b6b;--accent:#a88cff;--gap:12px;--radius:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1400px 900px at 70% -10%,#1b1230 0%,#0b0b11 55%),#0b0b11;color:var(--ink);font-family:"Times New Roman", Times, serif}
+button,input,select,textarea{font-family:"Times New Roman", Times, serif}
+
+/* Header */
+header{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,#10101a,#0b0b12);border-bottom:1px solid rgba(255,255,255,.08);padding:10px;backdrop-filter:blur(6px)}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:1200px;margin:0 auto}
+.title{font-weight:bold;margin-right:auto;letter-spacing:.3px}
+.tab{border:1px solid rgba(255,255,255,.15);background:linear-gradient(180deg,#1d1d2c,#141426);color:var(--ink);padding:10px 14px;border-radius:12px;cursor:pointer}
+.tab[aria-selected="true"]{outline:2px solid var(--accent);box-shadow:0 0 12px rgba(168,140,255,.45)}
+.wallet{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 10px;background:#12121d}
+.wallet input{width:90px;background:#0d0d14;border:1px solid rgba(255,255,255,.2);border-radius:10px;color:var(--ink);padding:6px 8px}
+.wallet label{color:var(--muted)}
+
+/* Layout */
+main{max-width:1200px;margin:0 auto;padding:14px}
+section.view{display:none}
+section.view.active{display:block}
+.card{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:var(--gap);margin-bottom:var(--gap);box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.row{display:flex;gap:var(--gap);flex-wrap:wrap}
+.row>*{flex:1 1 220px}
+label{display:block;color:var(--muted);font-size:14px;margin-bottom:6px}
+input,select,textarea{width:100%;padding:10px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:#0e0e16;color:var(--ink)}
+textarea{min-height:72px;resize:vertical}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid rgba(255,255,255,.2);background:linear-gradient(180deg,#1e1e2e,#131323);color:var(--ink);padding:10px 14px;border-radius:12px;cursor:pointer}
+.btn.primary{outline:2px solid var(--accent);box-shadow:0 0 10px rgba(168,140,255,.45)}
+.btn.danger{outline:2px solid var(--danger)}
+.pill{padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);color:var(--muted);font-size:12px;background:#12121c}
+.grid{display:grid;gap:var(--gap);--cols:3;grid-template-columns:repeat(var(--cols), minmax(0,1fr))}
+.subtabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.subtabs .btn[aria-pressed="true"]{outline:2px solid var(--accent);box-shadow:0 0 10px rgba(168,140,255,.45)}
+
+/* Rarity frame — per-card variables */
+.frame{position:relative;border-radius:22px;padding:8px;background:var(--rar-grad);box-shadow:0 0 0 3px rgba(0,0,0,.6),0 0 28px var(--rar-glow)}
+.frameInner{position:relative;border-radius:18px;overflow:hidden;background:#0a0a12}
+.thumb{position:relative;overflow:hidden}.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.ratio-portrait{padding-top:133.33%}.ratio-square{padding-top:100%}.ratio-landscape{padding-top:56.25%}
+
+/* Badges */
+.overlay{position:absolute;inset:0;padding:6px;pointer-events:none}
+.tag{position:absolute;font-weight:800;letter-spacing:.3px;
+  background: var(--rar-grad);-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+  filter: drop-shadow(0 0 6px rgba(0,0,0,.85));
+}
+.tl{top:6px;left:8px;font-size:clamp(20px,1.6vw,26px)}
+.tr{top:6px;right:8px;font-size:clamp(27px,2.0vw,35px)}
+.bl{bottom:8px;left:8px;font-size:clamp(22px,2.0vw,30px)}
+.bc{bottom:8px;left:50%;transform:translateX(-50%);text-align:center;max-width:92%;font-size:clamp(21px,2.0vw,27px)}
+
+/* Compact mode */
+.compact .meta,.compact .actions{display:none}
+
+/* Tables */
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid rgba(255,255,255,.12);padding:8px;vertical-align:top}
+td textarea{min-height:70px}.rarityColors>div{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.previewSwatch{width:240px;height:46px;border:1px solid rgba(255,255,255,.2);border-radius:10px}
+
+/* Modals */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:60}
+.modal.open{display:flex}
+.modal .box{background:var(--panel);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:14px;max-width:min(900px,96vw);max-height:90vh;overflow:auto;width:96vw}
+.modal .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+/* Catalog list layout */
+.catalog{display:block}
+.catalog .catalog-row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.catalog .thumb64{width:64px;height:64px;border-radius:10px;overflow:hidden;background:#0a0a12;border:1px solid rgba(255,255,255,.12)}
+.catalog .thumb64 img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.catalog .info .name{font-weight:700;line-height:1.2}
+.catalog .info .sub{color:var(--muted);font-size:12px;display:flex;gap:8px;flex-wrap:wrap}
+.catalog .info .desc{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.catalog .acts{display:flex;gap:6px;flex-wrap:wrap}
+.catalog .rar-badge{padding:2px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.18);font-size:11px;background:#11111a}
+
+/* Zoom viewer */
+#zoomModal .box{padding:0;background:transparent;border:none;box-shadow:none;max-width:96vw}
+.zoomPane{position:relative}
+.zoomPane img{max-width:96vw;max-height:90vh;display:block;border-radius:12px}
+.zoomClose{position:absolute;top:8px;right:8px}
+
+/* World editor small styles */
+.world-desc{color:var(--muted);font-size:13px;margin-top:6px}
+
+/* Force-hide actions under My Player card */
+#player .actions{display:none!important}
+
+/* Summon styles */
+.summon-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.summon-odds{color:var(--muted);font-size:13px}
+.summon-results{margin-top:12px}
+.summon-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:700px){ .summon-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.card.backface{position:relative;overflow:hidden}
+.flip{transform-style:preserve-3d;transition:transform .6s ease}
+.flip .face{backface-visibility:hidden}
+.flip .back{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);background:linear-gradient(180deg,#1d1d2c,#141426);}
+.flip .front{transform:rotateY(180deg)}
+.revealed{transform:rotateY(180deg)}
+.spark{position:absolute;inset:-20%;pointer-events:none;opacity:.0;filter:blur(12px);}
+.revealGlow{animation:revealPulse .7s ease-out}
+@keyframes revealPulse{0%{box-shadow:0 0 0 rgba(255,255,255,0)}60%{box-shadow:0 0 28px rgba(255,255,255,.35)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
+
+
+/* === UI Themes === */
+body[data-theme="classic"]{
+  --bg:#0b0b11;--panel:#151525;--ink:#f4f2ff;--muted:#c6bed9;--accent:#a88cff;
+}
+body[data-theme="midnight"]{
+  --bg:#070010;--panel:#150028;--ink:#f5eaff;--muted:#b8a8d9;--accent:#b06cff;
+}
+body[data-theme="royalgold"]{
+  --bg:#00091a;--panel:#051933;--ink:#fff8e0;--muted:#e0d0a0;--accent:#ffd700;
+}
+body[data-theme="crimson"]{
+  --bg:#1a0000;--panel:#330808;--ink:#fff0f0;--muted:#e0b0b0;--accent:#ff4c4c;
+}
+body[data-theme="azure"]{
+  --bg:#001025;--panel:#00254d;--ink:#e0f6ff;--muted:#b0d0e0;--accent:#00bfff;
+}
+
+
+/* Rarity layout improvements */
+#rarities .card table{table-layout:auto}
+#rarities th, #rarities td{white-space:normal;word-break:break-word;vertical-align:top}
+#rarities .rarityPreview .previewSwatch{min-width:260px;height:52px}
+#rarities .descCell textarea{min-height:120px}
+#rarities .nameCell input{min-width:200px}
+#rarities .gradeCell input, #rarities .tierCell input{width:90px}
+#rarities .filterBar{margin:8px 0}
+
+/* Rarity modal */
+
+#rarityModal .box{max-width:min(760px,96vw)}
+.colorRow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.colorRow input[type="color"]{width:44px;height:32px;padding:0;border:none;background:transparent}
+.colorRow .btn{padding:6px 10px}
+
+
+/* Rarity layout mobile-friendly */
+@media (max-width:900px){
+  #rarities table, #rarities thead, #rarities tbody, #rarities th, #rarities td, #rarities tr{
+    display:block;
+    width:100%;
+  }
+  #rarities tr{margin-bottom:12px;padding:8px;border:1px solid var(--muted);border-radius:var(--radius);background:var(--panel);}
+  #rarities td{padding:6px 0;}
+  #rarities input, #rarities textarea{width:100%;font-size:15px;}
+  #rarities .rarityPreview .previewSwatch{height:40px;}
+  #rarities .btn{padding:6px 10px;margin:2px 0;}
+}
+.modal.open{display:flex;align-items:center;justify-content:center;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;}
+.modal .box{background:var(--panel);padding:16px;border-radius:var(--radius);box-shadow:0 0 20px var(--accent);max-height:90vh;overflow-y:auto;width:min(600px,96vw);}
+.modal label{display:block;margin-top:8px;color:var(--ink);font-size:14px;}
+.modal input,.modal textarea{width:100%;margin-top:4px;border:none;border-radius:var(--radius);padding:6px;background:rgba(255,255,255,0.05);color:var(--ink);}
+
+
+/* v42b mobile rarities layout */
+@media (max-width:860px){
+  #rarities .card table{display:block}
+  #rarities thead{display:none}
+  #rarities tbody{display:block}
+  #rarities tr{display:block;margin:10px 0;padding:10px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:#11121c}
+  #rarities td{display:block;border:0;padding:6px 0}
+  #rarities td:before{content:attr(data-label);display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+  #rarities input, #rarities textarea{width:100%;font-size:16px}
+  #rarities .previewSwatch{width:100%;height:48px}
+  #rarities .btn{padding:8px 12px}
+}
+/* readable textareas and inputs */
+#rarities textarea{min-height:140px;line-height:1.35}
+#rarities input{height:40px}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="bar" role="tablist">
+    <div class="title">The Collector — v48</div>
+    <button class="tab" data-target="summon">Summon</button>
+    <button class="tab" data-target="codex" aria-selected="true">Codex</button>
+    <button class="tab" data-target="rarities">Rarities</button>
+    <button class="tab" data-target="collection">Collection</button>
+    <button class="tab" data-target="player">My Player</button>
+    <div class="wallet">
+      <label for="coins">Coins</label><input id="coins" type="number" min="0" step="1" inputmode="numeric">
+      <label for="gems">Gems</label><input id="gems" type="number" min="0" step="1" inputmode="numeric">
+        <button class="tab" data-target="settings">Settings</button>
+  </div>
+</header>
+<main>
+
+  <section id="summon" class="view">
+    <div class="card">
+      <div class="summon-controls">
+        <label class="pill">Currency
+          <select id="summonCurrency">
+            <option value="coins">Coins</option>
+            <option value="gems">Gems</option>
+          </select>
+        </label>
+        <label class="pill">Type
+          <select id="summonType">
+            <option value="unit">Units</option>
+            <option value="item">Items</option>
+          </select>
+        </label>
+        <label class="pill">Amount
+          <select id="summonQty">
+            <option value="1">1</option>
+            <option value="10">10</option>
+          </select>
+        </label>
+        <span class="pill" id="summonCost">Cost: 0</span>
+        <button class="btn primary" id="summonBtn">Summon</button>
+        <span class="summon-odds" id="summonOdds"></span>
+      </div>
+    </div>
+    <div class="card summon-results">
+      <div class="summon-grid" id="summonGrid"></div>
+    </div>
+  </section>
+
+  <section id="codex" class="view active">
+    <div class="card">
+      <div class="subtabs">
+        <button class="btn subtab" data-type="unit" aria-pressed="true">Units</button>
+        <button class="btn subtab" data-type="item">Items</button>
+        <button class="btn subtab" data-type="estate">Estates</button>
+        <button class="btn subtab" data-type="ride">Rides</button>
+        <button class="btn subtab" data-type="world">Worlds</button>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="addEntry">Add</button>
+        <input id="qCodex" placeholder="Search name, tags, world">
+        <select id="rCodex"><option value="">All rarities</option></select>
+        <select id="sCodex"><option value="name:asc">Name ↑</option><option value="name:desc">Name ↓</option><option value="rarity:asc">Rarity ↑</option><option value="rarity:desc">Rarity ↓</option></select>
+        <label class="pill"><input id="cCodex" type="checkbox"> Compact</label>
+        <label class="pill" id="colsWrap">Cols <select id="colsCodex"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+        <label class="pill">Layout <select id="layoutCodex"><option value="grid" selected>Grid</option><option value="catalog">Catalog</option></select></label>
+        <span class="pill" id="countCodex">0</span>
+      </div>
+    </div>
+    <div id="codexList" class="grid"></div>
+  </section>
+
+  <section id="rarities" class="view">
+    <div class="card controls" style="justify-content:space-between">
+      <div class="filterBar"><input id="qRarity" placeholder="Search by tier, grade, or name"></div>
+      <button class="btn primary" id="addRarity">Add Rarity</button>
+      <div class="pill">2–5 colors • Live preview</div>
+    </div>
+    <div class="card" style="overflow:auto">
+      <table>
+        <thead><tr><th>Tier</th><th>Grade</th><th>Name</th><th>Colors</th><th>Preview</th><th>Description</th><th></th></tr></thead>
+        <tbody id="rarityBody" data-mobile-labels="Tier,Grade,Name,Colors,Preview,Description,Actions"></tbody>
+      </table>
+    </div>
+    <div class="controls"><button class="btn primary" id="saveRarities">Save</button><button class="btn" id="resetRarities">Reset</button></div>
+  </section>
+
+  <section id="collection" class="view">
+    <div class="card controls">
+      <input id="qCol" placeholder="Search collection">
+      <select id="tCol"><option value="">All types</option><option value="unit">Units</option><option value="item">Items</option><option value="estate">Estates</option><option value="ride">Rides</option></select>
+      <select id="rCol"><option value="">All rarities</option></select>
+      <select id="sCol"><option value="name:asc">Name ↑</option><option value="name:desc">Name ↓</option><option value="rarity:asc">Rarity ↑</option><option value="rarity:desc">Rarity ↓</option></select>
+      <label class="pill"><input id="cCol" type="checkbox"> Compact</label>
+      <label class="pill" id="colsWrapCol">Cols <select id="colsCol"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+      <label class="pill">Layout <select id="layoutCol"><option value="grid" selected>Grid</option><option value="catalog">Catalog</option></select></label>
+      <span class="pill" id="countCol">0 owned</span>
+    </div>
+    <div id="collectionList" class="grid"></div>
+  </section>
+
+  <section id="player" class="view">
+    <div class="card">
+      <div class="controls" style="justify-content:space-between">
+        <div class="title">My Player</div>
+        <button class="btn primary" id="editPlayer">Edit</button>
+      </div>
+      <div id="playerView"></div>
+    </div>
+  </section>
+
+  <section id="settings" class="view">
+    <div class="card controls" style="justify-content:space-between">
+      <div class="filterBar"><input id="qRarity" placeholder="Search by tier, grade, or name"></div>
+      <div class="title">Settings</div>
+    </div>
+    <div class="card">
+      <div class="controls" style="flex-wrap:wrap">
+        <button class="btn primary" id="exportData">Export Data</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+        <button class="btn" id="importData">Import Data</button>
+        <button class="btn danger" id="deleteData">Delete All Data</button>
+      </div>
+      <p class="pill" style="margin-top:8px;color:var(--muted)">Manage your full backup or reset progress.</p>
+    </div>
+    <div class="card">
+      <div class="controls" style="flex-wrap:wrap">
+        <label class="pill">Theme
+          <select id="themeSelect">
+            <option value="classic">Classic Dark</option>
+            <option value="midnight">Midnight Neon</option>
+            <option value="royalgold">Royal Gold</option>
+            <option value="crimson">Crimson Void</option>
+            <option value="azure">Azure Crystal</option>
+          </select>
+        </label>
+      </div>
+      <p class="pill" style="margin-top:8px;color:var(--muted)">Choose between five visual themes. Changes save automatically.</p>
+    </div>
+
+  </section>
+
+</main>
+
+<!-- Entry Modal -->
+<div id="entryModal" class="modal" aria-hidden="true">
+  <div class="box">
+    <div class="head"><h3 id="entryTitle" style="margin:0">New</h3><button class="btn" data-close="entryModal">Close</button></div>
+    <form id="entryForm">
+      <div class="row">
+        <div><label>Name</label><input name="name" required></div>
+        <div><label>Rarity</label><select name="rarityId" id="raritySelect"></select></div>
+        <div><label>World</label><input name="world"></div>
+        <div><label>Tags (comma)</label><input name="tags"></div>
+      </div>
+      <div id="unitBlock">
+        <div class="row">
+          <div><label>Level</label><input name="level" type="number" min="1" value="1"></div>
+          <div><label>EXP</label><input name="exp" type="number" min="0" value="0"></div>
+          <div><label>Limit Break</label><input name="limitBreak" type="number" min="0" value="0"></div>
+          <div><label>Ascend</label><input name="ascend" type="number" min="0" value="0"></div>
+        </div>
+        <div class="row">
+          <div><label>HP</label><input name="hp" type="number" min="0" value="0"></div>
+          <div><label>STR</label><input name="str" type="number" min="0" value="0"></div>
+          <div><label>DEX</label><input name="dex" type="number" min="0" value="0"></div>
+          <div><label>CON</label><input name="con" type="number" min="0" value="0"></div>
+          <div><label>INT</label><input name="int" type="number" min="0" value="0"></div>
+          <div><label>WIS</label><input name="wis" type="number" min="0" value="0"></div>
+          <div><label>CHA</label><input name="cha" type="number" min="0" value="0"></div>
+        </div>
+      </div>
+      <div id="itemBlock" hidden>
+        <div class="row">
+          <div><label>Price</label><input name="price" type="number" min="0" value="0"></div>
+          <div><label>Type</label><input name="itemType"></div>
+          <div><label>Quantity</label><input name="quantity" type="number" min="1" value="1"></div>
+        </div>
+        <div><label>Effect</label><textarea name="effect"></textarea></div>
+      </div>
+      <div id="rideBlock" hidden>
+        <div class="row">
+          <div><label>Price</label><input name="price" type="number" min="0" value="0"></div>
+          <div><label>Speed</label><input name="speed" type="number" min="0" value="0"></div>
+          <div><label>Capacity</label><input name="capacity" type="number" min="0" value="0"></div>
+        </div>
+      </div>
+      <div id="estateBlock" hidden>
+        <div class="row">
+          <div><label>Price</label><input name="price" type="number" min="0" value="0"></div>
+          <div><label>Income</label><input name="income" type="number" min="0" value="0"></div>
+          <div><label>Capacity</label><input name="capacity" type="number" min="0" value="0"></div>
+          <div><label>Upkeep</label><input name="upkeep" type="number" min="0" value="0"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div style="flex:1 1 100%"><label>Image URL</label><input name="image"></div>
+        <div style="flex:1 1 100%"><label>Description</label><textarea name="description"></textarea></div>
+      </div>
+      <div class="controls" style="justify-content:flex-end"><span class="pill" id="entrySaved" hidden>Saved ✓</span><button class="btn primary" type="submit">Save</button></div>
+      <input type="hidden" name="id">
+    </form>
+  </div>
+</div>
+
+<!-- Player Modal -->
+<div id="playerModal" class="modal" aria-hidden="true">
+  <div class="box">
+    <div class="head"><h3 style="margin:0">Edit Player</h3><button class="btn" data-close="playerModal">Close</button></div>
+    <form id="playerForm">
+      <div class="row">
+        <div><label>Name</label><input name="name" required></div>
+        <div><label>Tier</label><select name="rarityId" id="playerRarity"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Level</label><input name="level" type="number" min="1" value="1"></div>
+        <div><label>EXP</label><input name="exp" type="number" min="0" value="0"></div>
+        <div><label>Limit Break</label><input name="limitBreak" type="number" min="0" value="0"></div>
+        <div><label>Ascend</label><input name="ascend" type="number" min="0" value="0"></div>
+      </div>
+      <div class="row">
+        <div><label>HP</label><input name="hp" type="number" min="0" value="0"></div>
+        <div><label>STR</label><input name="str" type="number" min="0" value="0"></div>
+        <div><label>DEX</label><input name="dex" type="number" min="0" value="0"></div>
+        <div><label>CON</label><input name="con" type="number" min="0" value="0"></div>
+        <div><label>INT</label><input name="int" type="number" min="0" value="0"></div>
+        <div><label>WIS</label><input name="wis" type="number" min="0" value="0"></div>
+        <div><label>CHA</label><input name="cha" type="number" min="0" value="0"></div>
+      </div>
+      <div class="row">
+        <div style="flex:1 1 100%"><label>Image URL (portrait)</label><input name="image"></div>
+        <div style="flex:1 1 100%"><label>Description</label><textarea name="description"></textarea></div>
+      </div>
+      <div class="controls" style="justify-content:flex-end"><span class="pill" id="playerSaved" hidden>Saved ✓</span><button class="btn primary" type="submit">Save</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- World Detail Modal -->
+<div id="worldModal" class="modal" aria-hidden="true">
+  <div class="box">
+    <div class="head"><h3 id="wmTitle" style="margin:0"></h3>
+      <div class="controls">
+        <button class="btn" id="wmEditBtn">Edit World</button>
+        <button class="btn" data-close="worldModal">Close</button>
+      </div>
+    </div>
+    <div id="wmBanner" style="margin-bottom:10px"></div>
+    <div id="wmDesc" class="world-desc"></div>
+    <div class="controls"><label class="pill"><input id="wmCompact" type="checkbox"> Compact</label><label class="pill">Cols <select id="wmCols"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label></div>
+    <div id="wmLists"></div>
+  </div>
+</div>
+
+<!-- World Edit Modal -->
+<div id="worldEditModal" class="modal" aria-hidden="true">
+  <div class="box">
+    <div class="head"><h3 id="weTitle" style="margin:0">Edit World</h3><button class="btn" data-close="worldEditModal">Close</button></div>
+    <form id="worldForm">
+      <input type="hidden" name="id">
+      <div class="row">
+        <div><label>World Name</label><input name="name" required></div>
+        <div><label>Banner Image URL</label><input name="image"></div>
+      </div>
+      <div><label>Description</label><textarea name="description"></textarea></div>
+      <div class="controls" style="justify-content:flex-end">
+        <button class="btn danger" id="worldDelete" type="button">Delete</button>
+        <button class="btn primary" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Zoom Modal -->
+<div id="zoomModal" class="modal" aria-hidden="true">
+  <div class="box">
+    <div class="zoomPane">
+      <button class="btn zoomClose" data-close="zoomModal">Close</button>
+      <img id="zoomImg" alt="Preview">
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEY='collector.v40';
+  const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+  function uid(){
+    try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+    const t=Date.now().toString(16), r=Math.floor(Math.random()*1e16).toString(16).padStart(12,'0');
+    return `${t}-${r.slice(0,4)}-${r.slice(4,8)}-${r.slice(8,12)}`;
+  }
+  s.wallet = s.wallet || {coins:0,gems:0};
+  s.rarities = s.rarities || [
+    {id:"T1",grade:"F",name:"Common",colors:["#808080","#333333"],desc:"Has no notable skills or powers."},
+    {id:"T2",grade:"E",name:"Uncommon",colors:["#556b2f","#228b22"],desc:"Possesses a useful, real-world skill."},
+    {id:"T3",grade:"D",name:"Rare",colors:["#87ceeb","#0f3a7a"],desc:"Peak human ability."},
+    {id:"T4",grade:"C",name:"Epic",colors:["#8a2be2","#4b0082"],desc:"Beyond human limits."},
+    {id:"T5",grade:"B",name:"Legendary",colors:["#ffbf00","#ffd700"],desc:"Fabled might."},
+    {id:"T6",grade:"A",name:"Mythic",colors:["#dc143c","#b22222"],desc:"Cataclysmic strength."},
+    {id:"T7",grade:"S",name:"Supreme",colors:["#c0c0c0","#ffffff"],desc:"Transcendent energy."},
+    {id:"T8",grade:"SS",name:"Arcane",colors:["#008080","#00bcd4"],desc:"Reality-bending."},
+    {id:"T9",grade:"SSS",name:"Celestial",colors:["#4b0082","#ff00ff"],desc:"Cosmic resonance."},
+    {id:"T10",grade:"U",name:"Ultimate",colors:["#001f3f","#1e90ff"],desc:"Stellar-scale command."},
+    {id:"TX",grade:"X",name:"Godlike",colors:["#ffd700","#fff4b1"],desc:"Deific dominion."},
+    {id:"TY",grade:"Y",name:"Multiversal",colors:["#ff0000","#00ffff"],desc:"Across realities."},
+    {id:"TZ",grade:"Z",name:"Omnipotent",colors:["#000000","#ffffff"],desc:"Alpha & Omega."}
+  ];
+  s.entries = s.entries || [];
+  
+  /* v42b: upgrade rarity descriptions to full text once */
+  if(!s._raritiesUpgradedV42b){
+    const full = {
+      T1: "Has no notable skills or powers.",
+      T2: "Possesses a useful, real-world skill.",
+      T3: "Embodies peak human ability or exceptional latent potential.",
+      T4: "First step beyond human limits; displays minor supernatural traits.",
+      T5: "Wields a defined, versatile superpower.",
+      T6: "Commands massive power, capable of destroying city blocks.",
+      T7: "Power affects entire cities or nations; mythical in scale.",
+      T8: "Wields reality-bending or esoteric hax abilities with continental reach.",
+      T9: "Astronomical scale; can destroy moons or reshape planets.",
+      T10: "Peak scalable force; can warp planetary systems or destroy stars.",
+      TX: "Breaks the rules of its own universe; exerts deific dominion.",
+      TY: "Exists across multiple realities; surpasses all universal laws.",
+      TZ: "Absolute, unlimited authority over all narratives and existence."
+    };
+    s.rarities = s.rarities.map(r=> ({...r, desc: full[r.id] || r.desc || ""}));
+    s._raritiesUpgradedV42b = true;
+    save();
+  }
+
+  s.collectionEntries = s.collectionEntries || [];
+  s.worlds = s.worlds || []; // {id,name,image,description}
+  s.lastTab = s.lastTab || 'codex';
+  s.lastSub = s.lastSub || 'unit';
+  s.codexCols = s.codexCols || 3;
+  s.collectionCols = s.collectionCols || 3;
+  s.codexCompact = !!s.codexCompact; s.collectionCompact = !!s.collectionCompact;
+  s.codexSort = s.codexSort || 'name:asc'; s.collectionSort = s.collectionSort || 'name:asc';
+  s.codexLayout = s.codexLayout || 'grid';
+  s.collectionLayout = s.collectionLayout || 'grid';
+  s.player = s.player || {name:"Player",rarityId:"T1",level:1,exp:0,limitBreak:0,ascend:0,hp:10,str:1,dex:1,con:1,int:1,wis:1,cha:1,image:"",description:""};
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){} }
+  const byId=id=>document.getElementById(id);
+  const esc=x=>String(x??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const num=v=>{v=Number(v||0);return Number.isFinite(v)?v:0;};
+  const rarity=id=>s.rarities.find(r=>r.id===id)||s.rarities[0];
+  const grad=colors=>`linear-gradient(135deg, ${colors.join(', ')})`;
+
+  const getWorld = (name)=> s.worlds.find(w=> (w.name||'').toLowerCase() === (name||'').toLowerCase());
+
+  
+  /* Summon constants */
+  const SUMMON_COST = { coins: 100, gems: 1 };
+  const SUMMON_COST_10 = { coins: 1000, gems: 10 }; // straight 10x
+
+  /* Helper to compute rarity weights
+     We bias by index in s.rarities (0=lowest, end=highest).
+     Coins: stronger bias to common (power=3.2). Gems: higher-tier favored (power=1.6). */
+  function rarityWeights(mode){
+    const n = s.rarities.length;
+    const power = mode==='gems' ? 1.6 : 3.2;
+    const w = s.rarities.map((r,idx)=> Math.pow((n-idx), power));
+    // Normalize
+    const sum = w.reduce((a,b)=>a+b,0);
+    return w.map(x=>x/sum);
+  }
+
+  function pickRarity(mode){
+    const w = rarityWeights(mode);
+    const roll = Math.random();
+    let acc=0;
+    for(let i=0;i<w.length;i++){
+      acc += w[i];
+      if(roll<=acc) return s.rarities[i].id;
+    }
+    return s.rarities[s.rarities.length-1].id;
+  }
+
+  function poolBy(type){
+    return s.entries.filter(e=>e.type===type);
+  }
+
+  function pickEntityByRarity(type, rarityId){
+    const pool = poolBy(type).filter(e=>e.rarityId===rarityId);
+    if(pool.length) return structuredClone(pool[Math.floor(Math.random()*pool.length)]);
+    const fallbackPool = poolBy(type);
+    if(!fallbackPool.length) return null;
+    return structuredClone(fallbackPool[Math.floor(Math.random()*fallbackPool.length)]);
+  }
+
+  function computeCost(qty, currency){
+    if(qty===10) return currency==='gems'? SUMMON_COST_10.gems : SUMMON_COST_10.coins;
+    return currency==='gems'? SUMMON_COST.gems : SUMMON_COST.coins;
+  }
+
+  function updateSummonUI(){
+    const qty = +byId('summonQty').value;
+    const currency = byId('summonCurrency').value;
+    const cost = computeCost(qty, currency);
+    byId('summonCost').textContent = 'Cost: ' + cost + ' ' + (currency==='gems'?'Gems':'Coins');
+
+    // Show a compact odds summary: top 4 tiers
+    const wCoins = rarityWeights('coins');
+    const wGems  = rarityWeights('gems');
+    const topIdx = Math.max(0, s.rarities.length-4);
+    const fmt = (arr)=> arr.slice(topIdx).map(p=>Math.round(p*1000)/10 + '%').join(' / ');
+    byId('summonOdds').textContent = '(Top tiers chance — Coins: ' + fmt(wCoins) + ' • Gems: ' + fmt(wGems) + ')';
+  }
+
+  function ensureWallet(currency, cost){
+    if(currency==='gems'){
+      if(s.wallet.gems>=cost){ s.wallet.gems -= cost; return true; }
+      return false;
+    } else {
+      if(s.wallet.coins>=cost){ s.wallet.coins -= cost; return true; }
+      return false;
+    }
+  }
+
+  function writeWalletInputs(){
+    byId('coins').value = s.wallet.coins;
+    byId('gems').value  = s.wallet.gems;
+  }
+
+  function summonOnce(type, currency){
+    const rid = pickRarity(currency);
+    const ent = pickEntityByRarity(type, rid);
+    if(!ent) return null;
+    // add to collection as a new instance
+    const entity = {...ent, id: uid(), baseId: ent.id};
+    s.collectionEntries.push(entity);
+    return entity;
+  }
+
+  function renderResultCard(entity){
+    const r = rarity(entity.rarityId);
+    const g = grad(r.colors);
+    const glow = (r.colors[1]||r.colors[0]);
+    const ratio = entity.type==='unit' ? 'ratio-portrait' : entity.type==='item' ? 'ratio-square' : 'ratio-landscape';
+    const img = entity.image ? '<img src="'+esc(entity.image)+'" alt="" data-zoom="'+esc(entity.image)+'">' : '';
+    // flip card scaffold
+    return `<div class="card backface revealGlow" style="--rar-grad:${g}; --rar-glow:${glow}">
+      <div class="flip">
+        <div class="face back">
+          <div class="frame"><div class="frameInner">
+            <div class="thumb ${ratio}"></div>
+            <div class="overlay"><div class="tag bc">Tap to reveal</div></div>
+          </div></div>
+        </div>
+        <div class="face front">
+          <div class="frame">
+            <div class="frameInner">
+              <div class="thumb ${ratio}">${img}</div>
+              <div class="overlay">
+                <div class="tag tl">${esc(r.name)}</div>
+                <div class="tag tr">${esc(r.grade)}</div>
+                <div class="tag bl">${esc(r.id)}</div>
+                <div class="tag bc">${esc(entity.name)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function attachRevealHandlers(container){
+    container.querySelectorAll('.card.backface .flip').forEach((el, idx)=>{
+      // auto-stagger reveal for 10x, or click for single
+      setTimeout(()=>{ el.classList.add('revealed'); }, 150*idx + 200);
+      el.addEventListener('click', ()=> el.classList.add('revealed'), {once:true});
+    });
+  }
+
+  function doSummon(){
+    const type = byId('summonType').value;
+    const currency = byId('summonCurrency').value;
+    const qty = +byId('summonQty').value;
+    const cost = computeCost(qty, currency);
+
+    if(!ensureWallet(currency, cost)){
+      alert('Not enough ' + (currency==='gems'?'Gems.':'Coins.'));
+      return;
+    }
+    save(); // persist wallet change
+    writeWalletInputs();
+
+    // perform rolls
+    const results = [];
+    for(let i=0;i<qty;i++){
+      const entity = summonOnce(type, currency);
+      if(entity) results.push(entity);
+    }
+    save(); // persist collection
+
+    // render reveal
+    const grid = byId('summonGrid');
+    grid.innerHTML = results.map(renderResultCard).join('');
+    attachRevealHandlers(grid);
+
+    // if Collection tab is open, refresh it
+    if(s.lastTab==='collection') renderCollection();
+  }
+
+  /* Tabs */
+  document.querySelectorAll('.tab').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false'));
+      b.setAttribute('aria-selected','true');
+      document.querySelectorAll('section.view').forEach(v=>v.classList.remove('active'));
+      byId(b.dataset.target).classList.add('active');
+      s.lastTab=b.dataset.target; save(); rerender();
+    });
+  });
+  (document.querySelector(`.tab[data-target="${s.lastTab}"]`)||document.querySelector('.tab')).click();
+
+  /* Wallet */
+  const coins=byId('coins'), gems=byId('gems');
+  coins.value=s.wallet.coins; gems.value=s.wallet.gems;
+  ['input','change','blur'].forEach(ev=>{
+    coins.addEventListener(ev,()=>{ s.wallet.coins=Math.max(0,num(coins.value)); save(); });
+    gems.addEventListener(ev,()=>{ s.wallet.gems=Math.max(0,num(gems.value)); save(); });
+  });
+
+  /* Subtabs */
+  document.querySelectorAll('.subtab').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.subtab').forEach(x=>x.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      s.lastSub=b.dataset.type; save(); renderCodex();
+    });
+  });
+  (document.querySelector(`.subtab[data-type="${s.lastSub}"]`)||document.querySelector('.subtab')).click();
+
+  /* Filters */
+  const qCodex=byId('qCodex'), rCodex=byId('rCodex'), sCodex=byId('sCodex'),
+        cCodex=byId('cCodex'), colsCodex=byId('colsCodex'), layoutCodex=byId('layoutCodex'), countCodex=byId('countCodex'), colsWrap=byId('colsWrap');
+  const qCol=byId('qCol'), tCol=byId('tCol'), rCol=byId('rCol'), sCol=byId('sCol'),
+        cCol=byId('cCol'), colsCol=byId('colsCol'), layoutCol=byId('layoutCol'), countCol=byId('countCol'), colsWrapCol=byId('colsWrapCol');
+
+  function fillRaritySelect(sel, withAll=true){
+    sel.innerHTML = withAll ? '<option value="">All rarities</option>' : '';
+    s.rarities.forEach(r=>{ const o=document.createElement('option'); o.value=r.id; o.textContent=`${r.id} • ${r.name}`; sel.appendChild(o); });
+  }
+  fillRaritySelect(rCodex); fillRaritySelect(rCol);
+  colsCodex.value=String(s.codexCols); colsCol.value=String(s.collectionCols);
+  cCodex.checked=s.codexCompact; cCol.checked=s.collectionCompact;
+  sCodex.value=s.codexSort; sCol.value=s.collectionSort;
+  layoutCodex.value=s.codexLayout; layoutCol.value=s.collectionLayout;
+
+  qCodex.addEventListener('input', renderCodex); rCodex.addEventListener('change', renderCodex);
+  sCodex.addEventListener('change', ()=>{ s.codexSort=sCodex.value; save(); renderCodex(); });
+  cCodex.addEventListener('change', ()=>{ s.codexCompact=cCodex.checked; save(); renderCodex(); });
+  colsCodex.addEventListener('change', ()=>{ s.codexCols=+colsCodex.value; save(); renderCodex(); });
+  layoutCodex.addEventListener('change', ()=>{ s.codexLayout=layoutCodex.value; save(); renderCodex(); });
+
+  qCol.addEventListener('input', renderCollection); tCol.addEventListener('change', renderCollection); rCol.addEventListener('change', renderCollection);
+  sCol.addEventListener('change', ()=>{ s.collectionSort=sCol.value; save(); renderCollection(); });
+  cCol.addEventListener('change', ()=>{ s.collectionCompact=cCol.checked; save(); renderCollection(); });
+  colsCol.addEventListener('change', ()=>{ s.collectionCols=+colsCol.value; save(); renderCollection(); });
+  layoutCol.addEventListener('change', ()=>{ s.collectionLayout=layoutCol.value; save(); renderCollection(); });
+
+  /* Summon controls */
+  document.addEventListener('change', (ev)=>{
+    if(!byId('summon')) return;
+    if(ev.target && (ev.target.id==='summonCurrency' || ev.target.id==='summonType' || ev.target.id==='summonQty')){
+      s.summon = s.summon || {currency:'coins', type:'unit', qty:1};
+      if(ev.target.id==='summonCurrency') s.summon.currency = ev.target.value;
+      if(ev.target.id==='summonType') s.summon.type = ev.target.value;
+      if(ev.target.id==='summonQty') s.summon.qty = +ev.target.value;
+      save();
+      updateSummonUI();
+    }
+  });
+  document.addEventListener('click', (ev)=>{
+    const b = ev.target.closest('#summonBtn');
+    if(b){ doSummon(); }
+  });
+
+
+  function sortList(list, mode){
+    const [key,dir]=mode.split(':');
+    return [...list].sort((a,b)=>{
+      if(key==='rarity'){
+        const ai=s.rarities.findIndex(r=>r.id===a.rarityId);
+        const bi=s.rarities.findIndex(r=>r.id===b.rarityId);
+        return dir==='asc' ? ai-bi : bi-ai;
+      } else {
+        const an=(a.name||'').toLowerCase();
+        const bn=(b.name||'').toLowerCase();
+        if(an<bn) return dir==='asc'?-1:1;
+        if(an>bn) return dir==='asc'?1:-1;
+        return 0;
+      }
+    });
+  }
+
+  /* Card HTML */
+  function cardHTML(e, showOwned=true){
+    const r=rarity(e.rarityId);
+    const ratio = e.type==='unit' ? 'ratio-portrait' : e.type==='item' ? 'ratio-square' : e.type==='estate' || e.type==='ride' ? 'ratio-landscape' : 'ratio-portrait';
+    const g = grad(r.colors);
+    const glow = (r.colors[1]||r.colors[0]);
+    const ownedCount = showOwned ? s.collectionEntries.filter(c=>c.baseId===e.id).length : 0;
+    const img = e.image?`<img src="${esc(e.image)}" alt="" data-zoom="${esc(e.image)}">`:'';
+    const w = getWorld(e.world);
+    return `<div class="card" data-id="${e.id}" style="--rar-grad:${g}; --rar-glow:${glow}">
+      <div class="frame">
+        <div class="frameInner">
+          <div class="thumb ${ratio}">${img}</div>
+          <div class="overlay">
+            <div class="tag tl">${esc(r.name)}</div>
+            <div class="tag tr">${esc(r.grade)}</div>
+            <div class="tag bl">${esc(r.id)}</div>
+            <div class="tag bc">${esc(e.name)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="meta" style="margin-top:6px">
+        <div class="pill">${esc(e.world||'')}</div>
+        ${e.description ? `<div class=\"world-desc\">${esc(e.description)}</div>` : ''}
+        ${metaLine(e)}
+      </div>
+      <div class="actions controls">
+        <button class="btn" data-add="${e.id}">Add to Collection</button>
+        <button class="btn danger" data-rem1="${e.id}">Remove one</button>
+        <button class="btn danger" data-remall="${e.id}">Remove all</button>
+        <button class="btn" data-edit="${e.id}">Edit</button>
+        <button class="btn danger" data-del="${e.id}">Delete</button>
+        ${ownedCount?`<span class="pill">Owned ×${ownedCount}</span>`:''}
+      </div>
+    </div>`;
+  }
+  function metaLine(e){
+    if(e.type==='unit'){ return `<div class="pill">LV ${e.level||1} • EXP ${e.exp||0} • LB ${e.limitBreak||0} • ASC ${e.ascend||0} • HP ${e.hp||0}</div>`; }
+    if(e.type==='item'){ return `<div class="pill">Price ${num(e.price)} • Type ${esc(e.itemType||'')} • Qty ${num(e.quantity||1)}</div>`; }
+    if(e.type==='ride'){ return `<div class="pill">Price ${num(e.price)} • Speed ${num(e.speed)} • Capacity ${num(e.capacity)}</div>`; }
+    if(e.type==='estate'){ return `<div class="pill">Price ${num(e.price)} • Income ${num(e.income)} • Capacity ${num(e.capacity)} • Upkeep ${num(e.upkeep)}</div>`; }
+    return '';
+  }
+
+  /* Catalog row HTML */
+  function catalogRowHTML(e, forCollection=false){
+    const r=rarity(e.rarityId);
+    const own = s.collectionEntries.filter(c=>c.baseId===e.id).length;
+    const thumb = e.image?`<img src="${esc(e.image)}" alt="" data-zoom="${esc(e.image)}">`:'';
+    const subParts=[esc(r.id), esc(r.name), esc(r.grade), esc(e.world||'')].filter(Boolean);
+    const desc = esc((e.description||'').trim());
+    const w = getWorld(e.world);    const price = e.type!=='unit' && e.price!=null ? `<span class="rar-badge">Price ${num(e.price)}</span>` : '';
+    const ownedBadge = forCollection ? '' : (own?`<span class="rar-badge">Owned ×${own}</span>`:'');
+    return `<div class="catalog-row" data-id="${e.id}">
+      <div class="thumb64">${thumb}</div>
+      <div class="info">
+        <div class="name">${esc(e.name)}</div>
+        <div class="sub">
+          <span class="rar-badge">${subParts.join(' • ')}</span>
+          ${ownedBadge}${price}
+        </div>
+        ${desc?`<div class="desc">${desc}</div>`:''}
+        
+      </div>
+      <div class="acts">
+        ${forCollection
+          ? `<button class="btn" data-edit-entity="${e.id}">Edit</button><button class="btn danger" data-del-entity="${e.id}">Remove</button>`
+          : `<button class="btn" data-add="${e.id}">Add</button><button class="btn" data-edit="${e.id}">Edit</button><button class="btn danger" data-del="${e.id}">Delete</button>`}
+      </div>
+    </div>`;
+  }
+
+  /* Codex */
+  function renderCodex(){
+    const list=byId('codexList');
+    const isCatalog = s.codexLayout==='catalog';
+    list.className = isCatalog ? 'catalog' : 'grid';
+    byId('colsWrap').style.display = isCatalog ? 'none' : '';
+    if(!isCatalog){ list.style.setProperty('--cols', s.codexCols); }
+    list.classList.toggle('compact', s.codexCompact);
+    const q=(qCodex.value||'').toLowerCase(); const rf=rCodex.value;
+    if(s.lastSub==='world'){
+      byId('addEntry').style.display='none';
+      const worldsSet = new Set(s.entries.map(e=> (e.world||'').trim()).filter(Boolean));
+      s.worlds.forEach(w=>worldsSet.add((w.name||'').trim()).delete(''));
+      const worlds = Array.from(worldsSet).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+      countCodex.textContent = worlds.length + ' worlds';
+      list.innerHTML = worlds.map(worldCard).join('');
+      return;
+    } else {
+      byId('addEntry').style.display='';
+    }
+    let data=s.entries.filter(e=>e.type===s.lastSub);
+    if(rf) data=data.filter(e=>e.rarityId===rf);
+    if(q) data=data.filter(e=> [e.name,e.world,(e.tags||[]).join(','),(e.description||'')].join(' ').toLowerCase().includes(q));
+    data=sortList(data, s.codexSort);
+    countCodex.textContent = data.length + ' items';
+    list.innerHTML = isCatalog ? data.map(e=>catalogRowHTML(e,false)).join('')
+                               : data.map(e=>cardHTML(e,true)).join('');
+  }
+
+  function worldCard(wname){
+    const w = getWorld(wname) || {};
+    const banner = w.image || (s.entries.find(e=>e.world===wname && e.image)||{}).image || "";
+    const desc = w.description || "";
+    const counts = (type)=>{
+      const ids = new Set(s.entries.filter(e=>e.world===wname && e.type===type).map(e=>e.id));
+      const owned = s.collectionEntries.filter(x=>ids.has(x.baseId)).reduce((acc,cur)=>acc.add(cur.baseId), new Set()).size;
+      return {total: ids.size, owned};
+    };
+    const cu=counts('unit'), ci=counts('item'), ce=counts('estate'), cr=counts('ride');
+    return `<div class="card">
+      <div class="frame" style="--rar-grad:${grad(['#4b0082','#ff00ff'])}; --rar-glow:#ff00ff">
+        <div class="frameInner">
+          <div class="thumb ratio-landscape">${banner?`<img src="${esc(banner)}" alt="" data-zoom="${esc(banner)}">`:''}</div>
+          <div class="overlay"><div class="tag bc">${esc(wname)}</div></div>
+        </div>
+      </div>
+      ${desc?`<div class="world-desc">${esc(desc)}</div>`:''}
+      <div class="controls" style="justify-content:space-between;margin-top:6px">
+        <div class="controls" style="gap:6px">
+          <span class="pill">Units ${cu.owned}/${cu.total}</span>
+          <span class="pill">Items ${ci.owned}/${ci.total}</span>
+          <span class="pill">Estates ${ce.owned}/${ce.total}</span>
+          <span class="pill">Rides ${cr.owned}/${cr.total}</span>
+        </div>
+        <div class="controls" style="gap:6px">
+          <button class="btn" data-world="${esc(wname)}">Details</button>
+          <button class="btn" data-world-edit="${esc(wname)}">Edit World</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* Collection */
+  function renderCollection(){
+    const list=byId('collectionList');
+    const isCatalog = s.collectionLayout==='catalog';
+    list.className = isCatalog ? 'catalog' : 'grid';
+    byId('colsWrapCol').style.display = isCatalog ? 'none' : '';
+    if(!isCatalog){ list.style.setProperty('--cols', s.collectionCols); }
+    list.classList.toggle('compact', s.collectionCompact);
+
+    const q=(qCol.value||'').toLowerCase(); const tf=tCol.value; const rf=rCol.value;
+    let data=[...s.collectionEntries];
+    if(tf) data=data.filter(e=>e.type===tf);
+    if(rf) data=data.filter(e=>e.rarityId===rf);
+    if(q) data=data.filter(e=> [e.name,e.world,(e.tags||[]).join(','),(e.description||'')].join(' ').toLowerCase().includes(q));
+    data=sortList(data, s.collectionSort);
+    countCol.textContent = data.length + ' owned';
+    list.innerHTML = isCatalog ? data.map(e=>catalogRowHTML(e,true)).join('')
+                               : data.map(e=>collectionCardHTML(e)).join('');
+  }
+  function collectionCardHTML(e){
+    const r=rarity(e.rarityId);
+    const ratio = e.type==='unit' ? 'ratio-portrait' : e.type==='item' ? 'ratio-square' : 'ratio-landscape';
+    const g = grad(r.colors); const glow=(r.colors[1]||r.colors[0]);
+    const img = e.image?`<img src="${esc(e.image)}" alt="" data-zoom="${esc(e.image)}">`:'';
+    return `<div class="card" data-id="${e.id}" style="--rar-grad:${g}; --rar-glow:${glow}">
+      <div class="frame"><div class="frameInner">
+        <div class="thumb ${ratio}">${img}</div>
+        <div class="overlay">
+          <div class="tag tl">${esc(r.name)}</div>
+          <div class="tag tr">${esc(r.grade)}</div>
+          <div class="tag bl">${esc(r.id)}</div>
+          <div class="tag bc">${esc(e.name)}</div>
+        </div>
+      </div></div>
+      <div class="meta" style="margin-top:6px">
+        <div class="pill">${esc(e.world||'')}</div>
+        ${metaLine(e)}
+      </div>
+      <div class="actions controls">
+        <button class="btn danger" data-del-entity="${e.id}">Remove</button>
+        <button class="btn" data-edit-entity="${e.id}">Edit</button>
+      </div>
+    </div>`;
+  }
+
+  /* Player */
+  function renderPlayer(){
+    const v=byId('playerView'); const e={type:'unit',name:s.player.name,image:s.player.image,rarityId:s.player.rarityId};
+    v.innerHTML = `<div class="row"><div style="flex:0 0 280px">${cardHTML(e,false)}</div>
+      <div style="flex:1">
+        <div class="pill" style="margin-top:6px">${esc(s.player.description||'')}</div>
+        <div class="pill">LV ${s.player.level} • EXP ${s.player.exp} • LB ${s.player.limitBreak} • ASC ${s.player.ascend}</div>
+        <div class="pill">HP ${s.player.hp} • STR ${s.player.str} • DEX ${s.player.dex} • CON ${s.player.con} • INT ${s.player.int} • WIS ${s.player.wis} • CHA ${s.player.cha}</div>
+      </div></div>`;
+    buildRarityOptions(byId('playerRarity'), s.player.rarityId);
+  }
+  function buildRarityOptions(sel, selected){ sel.innerHTML=''; s.rarities.forEach(r=>{ const o=document.createElement('option'); o.value=r.id; o.textContent=`${r.id} • ${r.name} (${r.grade})`; if(r.id===selected) o.selected=true; sel.appendChild(o); }); }
+
+  /* Rarities editor */
+
+  
+  /* Fix modal opening logic */
+  function initRarityModal(){
+    document.getElementById('addRarity')?.addEventListener('click', ()=> openRarityModal());
+    document.querySelector('#rarities tbody')?.addEventListener('click', (e)=>{
+      const editBtn = e.target.closest('[data-edit-rarity]');
+      if(editBtn){ openRarityModal(parseInt(editBtn.dataset.editRarity)); }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', initRarityModal);
+
+  /* Rarity filter */
+  const qRarity = document.getElementById('qRarity');
+  qRarity?.addEventListener('input', renderRarities);
+
+  /* Rarity modal helpers */
+  const rarityModal = document.getElementById('rarityModal');
+  const rarityForm = document.getElementById('rarityForm');
+  const rarityModalTitle = document.getElementById('rarityModalTitle');
+  const deleteRarityBtn = document.getElementById('deleteRarity');
+  const colorList = document.getElementById('colorList');
+  const addColorBtn = document.getElementById('addColor');
+
+  function openRarityModal(idx){
+    const isEdit = Number.isInteger(idx);
+    rarityForm.reset();
+    colorList.innerHTML='';
+    let r = {id:'', grade:'', name:'', desc:'', colors:['#6a00ff','#d4af37']};
+    if(isEdit && s.rarities[idx]) r = JSON.parse(JSON.stringify(s.rarities[idx]));
+    rarityForm.index.value = isEdit ? String(idx) : '';
+    rarityForm.id.value = r.id; rarityForm.grade.value = r.grade; rarityForm.name.value = r.name; rarityForm.desc.value = r.desc||'';
+    (r.colors||['#6a00ff','#d4af37']).forEach(c=>addColorControl(c));
+    rarityModalTitle.textContent = isEdit ? 'Edit Rarity' : 'Add Rarity';
+    deleteRarityBtn.style.display = isEdit ? '' : 'none';
+    rarityModal.classList.add('open'); rarityModal.setAttribute('aria-hidden','false');
+  }
+  function addColorControl(val){
+    const row = document.createElement('div'); row.className='colorRow';
+    const inp = document.createElement('input'); inp.type='color'; inp.value = val||'#ffffff';
+    const up = document.createElement('button'); up.type='button'; up.className='btn'; up.textContent='↑';
+    const dn = document.createElement('button'); dn.type='button'; dn.className='btn'; dn.textContent='↓';
+    const rm = document.createElement('button'); rm.type='button'; rm.className='btn danger'; rm.textContent='×';
+    up.onclick = ()=>{ if(row.previousElementSibling){ row.parentNode.insertBefore(row, row.previousElementSibling); } };
+    dn.onclick = ()=>{ if(row.nextElementSibling){ row.parentNode.insertBefore(row.nextElementSibling, row); } };
+    rm.onclick = ()=>{ if(colorList.children.length>2) row.remove(); };
+    row.append(inp, up, dn, rm); colorList.appendChild(row);
+  }
+  addColorBtn?.addEventListener('click', ()=>{ if(colorList.children.length<5) addColorControl('#ffffff'); });
+
+  /* Close handlers */
+  document.querySelectorAll('[data-close="rarityModal"]').forEach(b=>b.addEventListener('click',()=>{
+    rarityModal.classList.remove('open'); rarityModal.setAttribute('aria-hidden','true');
+  }));
+
+  /* Hook Add Rarity to modal */
+  const addRarityBtn = document.getElementById('addRarity');
+  addRarityBtn?.replaceWith(addRarityBtn.cloneNode(true)); // remove old listener
+  document.getElementById('addRarity')?.addEventListener('click', ()=>openRarityModal());
+
+  /* Save rarity from modal */
+  rarityForm?.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const id = rarityForm.id.value.trim();
+    const grade = rarityForm.grade.value.trim();
+    const name = rarityForm.name.value.trim();
+    const desc = rarityForm.desc.value.trim();
+    if(!id || !grade || !name || !desc){ alert('Please fill all fields.'); return; }
+    const colors = Array.from(colorList.querySelectorAll('input[type="color"]')).map(i=>i.value).slice(0,5);
+    if(colors.length<2){ alert('Add at least two colors.'); return; }
+    const payload = {id, grade, name, desc, colors};
+    const idxStr = rarityForm.index.value;
+    if(idxStr===''){
+      s.rarities.push(payload);
+    }else{
+      const i = +idxStr;
+      if(s.rarities[i]) s.rarities[i]=payload;
+    }
+    save(); renderRarities(); fillRaritySelect(rCodex); fillRaritySelect(rCol);
+    rarityModal.classList.remove('open'); rarityModal.setAttribute('aria-hidden','true');
+  });
+
+  /* Delete rarity */
+  deleteRarityBtn?.addEventListener('click', ()=>{
+    const idxStr = rarityForm.index.value;
+    if(idxStr==='') return;
+    const i = +idxStr;
+    if(confirm('Delete this rarity?')){
+      s.rarities.splice(i,1);
+      save(); renderRarities(); fillRaritySelect(rCodex); fillRaritySelect(rCol);
+      rarityModal.classList.remove('open'); rarityModal.setAttribute('aria-hidden','true');
+    }
+  });
+
+  /* Override renderRarities to include Edit buttons and filtering; ensure full text visible */
+  const _renderRarities = renderRarities;
+  renderRarities = function(){
+    const body=byId('rarityBody'); body.innerHTML='';
+    const q = (qRarity?.value||'').toLowerCase().trim();
+    const data = s.rarities.filter(r=>{
+      if(!q) return true;
+      const hay = [r.id,r.grade,r.name,(r.desc||'')].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+    data.forEach((r,idx)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td class="tierCell"><div style="min-width:80px"><input data-i="${idx}" data-k="id" value="${esc(r.id)}"></div></td>
+        <td class="gradeCell"><input data-i="${idx}" data-k="grade" value="${esc(r.grade)}"></td>
+        <td class="nameCell"><input data-i="${idx}" data-k="name" value="${esc(r.name)}"></td>
+        <td class="rarityColors"></td>
+        <td class="rarityPreview"><div class="previewSwatch"></div></td>
+        <td class="descCell"><textarea data-i="${idx}" data-k="desc">${esc(r.desc||'')}</textarea></td>
+        <td>
+          <button class="btn" data-edit-rarity="${idx}">Edit</button>
+          <button class="btn danger" data-del="${idx}">Delete</button>
+        </td>`;
+      body.appendChild(tr);
+      const colorsCell=tr.querySelector('.rarityColors'); const sw=tr.querySelector('.previewSwatch');
+      function update(){ sw.style.background = grad(r.colors); }
+      function rebuild(){
+        colorsCell.innerHTML='';
+        r.colors.slice(0,5).forEach((c,i)=>{
+          const row=document.createElement('div'); row.style.display='flex'; row.style.alignItems='center'; row.style.gap='6px'; row.style.marginBottom='6px';
+          const inp=document.createElement('input'); inp.type='color'; inp.value=c;
+          inp.addEventListener('input',()=>{ r.colors[i]=inp.value; update(); });
+          const up=btn('↑'), dn=btn('↓'), rm=btn('×',true);
+          up.onclick=()=>{ if(i>0){ [r.colors[i-1],r.colors[i]]=[r.colors[i],r.colors[i-1]]; rebuild(); update(); } };
+          dn.onclick=()=>{ if(i<r.colors.length-1){ [r.colors[i+1],r.colors[i]]=[r.colors[i],r.colors[i+1]]; rebuild(); update(); } };
+          rm.onclick=()=>{ if(r.colors.length>2){ r.colors.splice(i,1); rebuild(); update(); } };
+          row.append(inp, up, dn, rm); colorsCell.appendChild(row);
+        });
+        const add=document.createElement('button'); add.className='btn'; add.type='button'; add.textContent='Add color'; add.disabled=r.colors.length>=5;
+        add.onclick=()=>{ if(r.colors.length<5){ r.colors.push('#ffffff'); rebuild(); update(); } };
+        colorsCell.appendChild(add);
+      }
+      function btn(txt,danger=false){ const b=document.createElement('button'); b.type='button'; b.className='btn'+(danger?' danger':''); b.style.padding='2px 6px'; b.textContent=txt; return b;}
+      update(); rebuild();
+    });
+    // wire edit buttons
+    body.addEventListener('click',(e)=>{
+      const b=e.target.closest('[data-edit-rarity]');
+      if(b){
+        const idx=+b.dataset.editRarity;
+        openRarityModal(idx);
+      }
+    }, {once:true});
+  };
+
+  function renderRarities(){
+    const body=byId('rarityBody'); body.innerHTML='';
+    s.rarities.forEach((r,idx)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><input data-i="${idx}" data-k="id" value="${esc(r.id)}"></td>
+        <td><input data-i="${idx}" data-k="grade" value="${esc(r.grade)}"></td>
+        <td><input data-i="${idx}" data-k="name" value="${esc(r.name)}"></td>
+        <td class="rarityColors"></td>
+        <td class="rarityPreview"><div class="previewSwatch"></div></td>
+        <td><textarea data-i="${idx}" data-k="desc">${esc(r.desc||'')}</textarea></td>
+        <td><button class="btn danger" data-del="${idx}">Delete</button></td>`;
+      body.appendChild(tr);
+      const colorsCell=tr.querySelector('.rarityColors'); const sw=tr.querySelector('.previewSwatch');
+      function update(){ sw.style.background = grad(r.colors); }
+      function rebuild(){
+        colorsCell.innerHTML='';
+        r.colors.slice(0,5).forEach((c,i)=>{
+          const row=document.createElement('div');
+          const inp=document.createElement('input'); inp.type='color'; inp.value=c;
+          inp.addEventListener('input',()=>{ r.colors[i]=inp.value; update(); });
+          const up=btn('↑'), dn=btn('↓'), rm=btn('×',true);
+          up.onclick=()=>{ if(i>0){ [r.colors[i-1],r.colors[i]]=[r.colors[i],r.colors[i-1]]; rebuild(); update(); } };
+          dn.onclick=()=>{ if(i<r.colors.length-1){ [r.colors[i+1],r.colors[i]]=[r.colors[i],r.colors[i+1]]; rebuild(); update(); } };
+          rm.onclick=()=>{ if(r.colors.length>2){ r.colors.splice(i,1); rebuild(); update(); } };
+          row.append(inp, up, dn, rm); colorsCell.appendChild(row);
+        });
+        const add=document.createElement('button'); add.className='btn'; add.type='button'; add.textContent='Add color'; add.disabled=r.colors.length>=5;
+        add.onclick=()=>{ if(r.colors.length<5){ r.colors.push('#ffffff'); rebuild(); update(); } };
+        colorsCell.appendChild(add);
+      }
+      function btn(txt,danger=false){ const b=document.createElement('button'); b.type='button'; b.className='btn'+(danger?' danger':''); b.style.padding='2px 6px'; b.textContent=txt; return b;}
+      update(); rebuild();
+    });
+  }
+  byId('addRarity').addEventListener('click',()=>{ s.rarities.push({id:'NEW',grade:'',name:'New',colors:['#6a00ff','#d4af37'],desc:''}); save(); renderRarities(); fillRaritySelect(rCodex); fillRaritySelect(rCol); });
+  byId('saveRarities').addEventListener('click',()=>{
+    document.querySelectorAll('#rarityBody [data-i]').forEach(inp=>{ s.rarities[+inp.dataset.i][inp.dataset.k]=inp.value; });
+    save(); renderCodex(); renderCollection(); renderPlayer();
+/* immediate scrub */(function(){const pv=document.getElementById('playerView');if(pv) pv.querySelectorAll('.actions').forEach(n=>n.remove());})();
+  });
+  byId('resetRarities').addEventListener('click',()=>{ try{ localStorage.removeItem(KEY);}catch(e){} location.reload(); });
+  byId('rarityBody').addEventListener('click',(e)=>{
+    const d=e.target.closest('[data-del]'); if(!d) return; const i=+d.dataset.del; s.rarities.splice(i,1); save(); renderRarities(); fillRaritySelect(rCodex); fillRaritySelect(rCol); renderCodex(); renderCollection(); renderPlayer();
+/* immediate scrub */(function(){const pv=document.getElementById('playerView');if(pv) pv.querySelectorAll('.actions').forEach(n=>n.remove());})();
+  });
+
+  /* Player modal */
+  byId('editPlayer').addEventListener('click',()=>{
+    const f=byId('playerForm');
+    f.reset();
+    f.name.value=s.player.name; buildRarityOptions(byId('playerRarity'), s.player.rarityId);
+    ['level','exp','limitBreak','ascend','hp','str','dex','con','int','wis','cha'].forEach(k=>f[k].value=s.player[k]);
+    f.image.value=s.player.image||''; f.description.value=s.player.description||'';
+    byId('playerSaved').hidden=true;
+    openModal('playerModal');
+  });
+  byId('playerForm').addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const f=ev.target;
+    s.player={
+      name:f.name.value.trim(), rarityId:f.rarityId.value,
+      level:num(f.level.value), exp:num(f.exp.value), limitBreak:num(f.limitBreak.value), ascend:num(f.ascend.value),
+      hp:num(f.hp.value), str:num(f.str.value), dex:num(f.dex.value), con:num(f.con.value), int:num(f.int.value), wis:num(f.wis.value), cha:num(f.cha.value),
+      image:f.image.value.trim(), description:f.description.value.trim()
+    };
+    save(); renderPlayer();
+/* immediate scrub */(function(){const pv=document.getElementById('playerView');if(pv) pv.querySelectorAll('.actions').forEach(n=>n.remove());})(); byId('playerSaved').hidden=false;
+  });
+
+  /* Add/Edit entries */
+  byId('addEntry').addEventListener('click',()=>openEntry());
+  function openEntry(id){
+    const type=s.lastSub==='world'?'unit':s.lastSub;
+    const data=id ? s.entries.find(e=>e.id===id) : {id:uid(),type,name:"",rarityId:s.rarities[0].id,world:"",tags:[],image:"",description:""};
+    const f=byId('entryForm'); f.reset();
+    f.id.value=data.id||uid(); f.name.value=data.name||""; buildRarityOptions(byId('raritySelect'), data.rarityId); f.world.value=data.world||""; f.tags.value=(data.tags||[]).join(', '); f.image.value=data.image||""; f.description.value=data.description||"";
+    showTypeBlocks(data.type||type);
+    if((data.type||type)==='unit'){
+      ['level','exp','limitBreak','ascend','hp','str','dex','con','int','wis','cha'].forEach(k=> f[k].value = num(data[k]));
+    }
+    if((data.type||type)==='item'){
+      f.price.value=num(data.price); f.itemType.value=data.itemType||""; f.quantity.value=num(data.quantity||1); f.effect.value=data.effect||"";
+    }
+    if((data.type||type)==='ride'){
+      f.price.value=num(data.price); f.speed.value=num(data.speed); f.capacity.value=num(data.capacity);
+    }
+    if((data.type||type)==='estate'){
+      f.price.value=num(data.price); f.income.value=num(data.income); f.capacity.value=num(data.capacity); f.upkeep.value=num(data.upkeep);
+    }
+    byId('entryTitle').textContent = id? `Edit ${data.type}` : `Add ${type}`;
+    byId('entrySaved').hidden=true;
+    openModal('entryModal');
+
+    f.onsubmit=(ev)=>{
+      ev.preventDefault();
+      const payload={
+        id:f.id.value, type:(data.type||type), name:f.name.value.trim(), rarityId:f.rarityId.value, world:f.world.value.trim(),
+        tags:f.tags.value.split(',').map(t=>t.trim()).filter(Boolean), image:f.image.value.trim(), description:f.description.value.trim()
+      };
+      if(payload.type==='unit'){
+        Object.assign(payload,{ level:num(f.level.value), exp:num(f.exp.value), limitBreak:num(f.limitBreak.value), ascend:num(f.ascend.value),
+          hp:num(f.hp.value), str:num(f.str.value), dex:num(f.dex.value), con:num(f.con.value), int:num(f.int.value), wis:num(f.wis.value), cha:num(f.cha.value)});
+      } else if(payload.type==='item'){
+        Object.assign(payload,{ price:num(f.price.value), itemType:f.itemType.value.trim(), quantity:num(f.quantity.value), effect:f.effect.value.trim() });
+      } else if(payload.type==='ride'){
+        Object.assign(payload,{ price:num(f.price.value), speed:num(f.speed.value), capacity:num(f.capacity.value) });
+      } else if(payload.type==='estate'){
+        Object.assign(payload,{ price:num(f.price.value), income:num(f.income.value), capacity:num(f.capacity.value), upkeep:num(f.upkeep.value) });
+      }
+      const i=s.entries.findIndex(x=>x.id===payload.id);
+      if(i>=0) s.entries[i]=payload; else s.entries.push(payload);
+      save(); renderCodex(); renderCollection(); byId('entrySaved').hidden=false;
+    };
+  }
+  function showTypeBlocks(type){
+    byId('unitBlock').hidden=!(type==='unit');
+    byId('itemBlock').hidden=!(type==='item');
+    byId('rideBlock').hidden=!(type==='ride');
+    byId('estateBlock').hidden=!(type==='estate');
+  }
+
+  /* World detail + editor */
+  const worldModal=byId('worldModal');
+  const wmCols=byId('wmCols'), wmCompact=byId('wmCompact'), wmLists=byId('wmLists'), wmTitle=byId('wmTitle'), wmBanner=byId('wmBanner'), wmDesc=byId('wmDesc');
+  byId('wmEditBtn').addEventListener('click', ()=>{
+    const name=wmTitle.textContent||'';
+    openWorldEdit(name);
+  });
+  function openWorldDetail(name){
+    wmTitle.textContent=name;
+    const w = getWorld(name) || {};
+    wmBanner.innerHTML = w.image? `<img src="${esc(w.image)}" alt="" style="max-width:100%;border-radius:12px" data-zoom="${esc(w.image)}">` : '';
+    wmDesc.textContent = w.description || '';
+    buildWorldLists(name);
+    worldModal.classList.add('open'); worldModal.setAttribute('aria-hidden','false');
+  }
+  function buildWorldLists(name){
+    wmLists.innerHTML='';
+    const cols=+wmCols.value; const compact=wmCompact.checked;
+    ['unit','item','estate','ride'].forEach(t=>{
+      const header=document.createElement('div'); header.className='controls'; header.innerHTML=`<b style="font-size:16px">${t.toUpperCase()}</b>`;
+      const wrap=document.createElement('div'); wrap.className='grid'; wrap.style.setProperty('--cols', cols); if(compact) wrap.classList.add('compact');
+      s.entries.filter(e=>e.world===name && e.type===t).forEach(e=>wrap.insertAdjacentHTML('beforeend', cardHTML(e,true)));
+      wmLists.append(header, wrap);
+    });
+  }
+  wmCols.addEventListener('change',()=>buildWorldLists(wmTitle.textContent));
+  wmCompact.addEventListener('change',()=>buildWorldLists(wmTitle.textContent));
+
+  const worldEditModal=byId('worldEditModal');
+  const worldForm=byId('worldForm'); const worldDelete=byId('worldDelete');
+  function openWorldEdit(name){
+    const existing = getWorld(name);
+    const data = existing || {id:uid(), name: name||'', image:'', description:''};
+    worldForm.id.value = data.id;
+    worldForm.name.value = data.name||'';
+    worldForm.image.value = data.image||'';
+    worldForm.description.value = data.description||'';
+    byId('weTitle').textContent = existing? 'Edit World' : 'Add World';
+    worldDelete.style.display = existing? '' : 'none';
+    worldEditModal.classList.add('open'); worldEditModal.setAttribute('aria-hidden','false');
+    worldForm.onsubmit = (ev)=>{
+      ev.preventDefault();
+      const oldName = existing? existing.name : data.name;
+      const nw = {
+        id: worldForm.id.value,
+        name: worldForm.name.value.trim(),
+        image: worldForm.image.value.trim(),
+        description: worldForm.description.value.trim()
+      };
+      const i = s.worlds.findIndex(x=>x.id===nw.id);
+      if(i>=0) s.worlds[i]=nw; else s.worlds.push(nw);
+      // Cascade rename to entries if the name changed
+      if(oldName && nw.name && oldName.toLowerCase() !== nw.name.toLowerCase()){
+        s.entries.forEach(e=>{ if((e.world||'').toLowerCase()===oldName.toLowerCase()) e.world = nw.name; });
+        s.collectionEntries.forEach(e=>{ if((e.world||'').toLowerCase()===oldName.toLowerCase()) e.world = nw.name; });
+      }
+      save(); renderCodex(); renderCollection();
+      // If world detail is open for this world, refresh it
+      if(wmTitle.textContent && wmTitle.textContent.toLowerCase() === (oldName||'').toLowerCase()){
+        openWorldDetail(nw.name);
+      }
+      worldEditModal.classList.remove('open'); worldEditModal.setAttribute('aria-hidden','true');
+    };
+    worldDelete.onclick = ()=>{
+      if(!existing) return;
+      s.worlds = s.worlds.filter(w=>w.id!==existing.id);
+      save(); renderCodex();
+      worldEditModal.classList.remove('open'); worldEditModal.setAttribute('aria-hidden','true');
+    };
+  }
+
+  
+  /* Settings: import/export/delete */
+
+  /* === Theme Management === */
+  const themeSelect = document.getElementById('themeSelect');
+  if(!s.theme){ s.theme='classic'; }
+  document.body.dataset.theme = s.theme;
+  if(themeSelect){ themeSelect.value = s.theme; }
+  themeSelect?.addEventListener('change', ()=>{
+    s.theme = themeSelect.value;
+    document.body.dataset.theme = s.theme;
+    save();
+  });
+
+  function exportData(){
+    const blob = new Blob([JSON.stringify(s,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'collector_backup.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importData(file){
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      try{
+        const data = JSON.parse(ev.target.result);
+        localStorage.setItem('collector.v40', JSON.stringify(data));
+        alert('Import successful. The app will reload.');
+        location.reload();
+      }catch(e){
+        alert('Invalid file format.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function deleteAllData(){
+    if(confirm('This will erase all data. Continue?')){
+      localStorage.removeItem('collector.v40');
+      alert('All data deleted. Reloading.');
+      location.reload();
+    }
+  }
+
+  document.addEventListener('click',(e)=>{
+    const t=e.target;
+    if(t.id==='exportData'){ exportData(); }
+    if(t.id==='importData'){ byId('importFile').click(); }
+    if(t.id==='deleteData'){ deleteAllData(); }
+  });
+  document.addEventListener('change',(e)=>{
+    if(e.target.id==='importFile' && e.target.files.length){ importData(e.target.files[0]); }
+  });
+
+  /* Delegated actions and zoom */
+  document.body.addEventListener('click',(e)=>{
+    const btn=e.target.closest('button');
+    if(btn){
+      if(btn.dataset.add){
+        const baseId=btn.dataset.add;
+        const base=s.entries.find(x=>x.id===baseId);
+        if(base){
+          const entity={...base,id:uid(),baseId:base.id};
+          s.collectionEntries.push(entity);
+          save(); renderCodex(); renderCollection();
+        }
+        return;
+      }
+      if(btn.dataset.rem1){
+        const baseId=btn.dataset.rem1;
+        const idx=s.collectionEntries.findIndex(x=>x.baseId===baseId);
+        if(idx>=0){ s.collectionEntries.splice(idx,1); save(); renderCodex(); renderCollection(); }
+        return;
+      }
+      if(btn.dataset.remall){
+        const baseId=btn.dataset.remall;
+        s.collectionEntries = s.collectionEntries.filter(x=>x.baseId!==baseId);
+        save(); renderCodex(); renderCollection();
+        return;
+      }
+      if(btn.dataset.edit){ openEntry(btn.dataset.edit); return; }
+      if(btn.dataset.del){
+        const id=btn.dataset.del;
+        const i=s.entries.findIndex(x=>x.id===id);
+        if(i>=0){
+          s.collectionEntries = s.collectionEntries.filter(x=>x.baseId!==s.entries[i].id);
+          s.entries.splice(i,1);
+          save(); renderCodex(); renderCollection();
+        }
+        return;
+      }
+      if(btn.dataset.delEntity){
+        const id=btn.dataset.delEntity;
+        const i=s.collectionEntries.findIndex(x=>x.id===id);
+        if(i>=0){ s.collectionEntries.splice(i,1); save(); renderCodex(); renderCollection(); }
+        return;
+      }
+      if(btn.dataset.editEntity){
+        const id=btn.dataset.editEntity;
+        const ent=s.collectionEntries.find(x=>x.id===id);
+        if(!ent) return;
+        const f=byId('entryForm'); f.reset();
+        f.id.value=ent.baseId;
+        f.name.value=ent.name; buildRarityOptions(byId('raritySelect'), ent.rarityId);
+        f.world.value=ent.world||""; f.tags.value=(ent.tags||[]).join(', '); f.image.value=ent.image||""; f.description.value=ent.description||"";
+        showTypeBlocks(ent.type);
+        if(ent.type==='unit'){
+          ['level','exp','limitBreak','ascend','hp','str','dex','con','int','wis','cha'].forEach(k=> f[k].value = num(ent[k]));
+        } else if(ent.type==='item'){
+          f.price.value=num(ent.price); f.itemType.value=ent.itemType||""; f.quantity.value=num(ent.quantity||1); f.effect.value=ent.effect||"";
+        } else if(ent.type==='ride'){
+          f.price.value=num(ent.price); f.speed.value=num(ent.speed); f.capacity.value=num(ent.capacity);
+        } else if(ent.type==='estate'){
+          f.price.value=num(ent.price); f.income.value=ent.income; f.capacity.value=ent.capacity; f.upkeep.value=ent.upkeep;
+        }
+        byId('entryTitle').textContent = `Edit ${ent.type} (base)`;
+        byId('entrySaved').hidden=true;
+        openModal('entryModal');
+        return;
+      }
+      if(btn.dataset.world){ openWorldDetail(btn.dataset.world); return; }
+      if(btn.dataset.worldEdit){ openWorldEdit(btn.dataset.worldEdit); return; }
+      if(btn.dataset.close){
+        const id=btn.dataset.close;
+        const el=byId(id); el.classList.remove('open'); el.setAttribute('aria-hidden','true');
+        return;
+      }
+    }
+
+    const img = e.target.closest('img[data-zoom]');
+    if(img){ openZoom(img.getAttribute('data-zoom')); return; }
+
+    if(e.target.classList.contains('modal')){
+      const m=e.target; m.classList.remove('open'); m.setAttribute('aria-hidden','true');
+    }
+  });
+
+  /* Zoom helpers */
+  function openZoom(src){
+    const modal=byId('zoomModal'); const img=byId('zoomImg');
+    img.src=src||'';
+    modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  }
+
+  /* Modal helpers */
+  function openModal(id){ const el=byId(id); el.classList.add('open'); el.setAttribute('aria-hidden','false'); }
+
+  
+  function renderSummon(){
+    // initialize controls with last used or defaults
+    try{
+      if(!s.summon){ s.summon = {currency:'coins', type:'unit', qty:1}; }
+      byId('summonCurrency').value = s.summon.currency;
+      byId('summonType').value = s.summon.type;
+      byId('summonQty').value = String(s.summon.qty);
+      updateSummonUI();
+    }catch(e){}
+  }
+
+  function rerender(){ if(s.lastTab==='settings'); if(s.lastTab==='summon') renderSummon(); if(s.lastTab==='codex') renderCodex(); if(s.lastTab==='collection') renderCollection(); if(s.lastTab==='rarities') renderRarities(); if(s.lastTab==='player') renderPlayer();
+/* immediate scrub */(function(){const pv=document.getElementById('playerView');if(pv) pv.querySelectorAll('.actions').forEach(n=>n.remove());})(); }
+
+  /* Seed demo if empty */
+  if(!s.entries.length){
+    s.entries = [
+      {id:uid(),type:'unit',name:'Hero of Dawn',rarityId:'T7',world:'Eldoria',level:1,exp:0,limitBreak:0,ascend:0,hp:100,image:'',description:'Legendary warrior of Eldoria.'},
+      {id:uid(),type:'item',name:'Arcane Blade',rarityId:'T8',world:'Eldoria',price:250,itemType:'Weapon',quantity:1,effect:'Cuts reality.',image:'',description:'Cuts through reality.'},
+      {id:uid(),type:'ride',name:'Golden Rider',rarityId:'T5',world:'Solaria',price:1000,speed:200,capacity:2,image:'',description:'Fast and shiny.'},
+      {id:uid(),type:'estate',name:'Sky Keep',rarityId:'T6',world:'Solaria',price:5000,income:250,capacity:20,upkeep:50,image:'',description:'Castle in the clouds.'}
+    ];
+  }
+  if(!s.worlds.length){
+    s.worlds = [
+      {id:uid(), name:'Eldoria', image:'', description:'A land of ancient magic and steel.'},
+      {id:uid(), name:'Solaria', image:'', description:'Sun-washed skies and floating citadels.'}
+    ];
+  }
+  save();
+
+  renderRarities(); renderPlayer();
+/* immediate scrub */(function(){const pv=document.getElementById('playerView');if(pv) pv.querySelectorAll('.actions').forEach(n=>n.remove());})(); renderCodex(); renderCollection();
+})();
+
+/* Scrub Player card actions */
+(function(){
+  const pv=document.getElementById('playerView');
+  if(!pv) return;
+  const scrub=()=>pv.querySelectorAll('.actions').forEach(n=>n.remove());
+  scrub();
+  try{ new MutationObserver(scrub).observe(pv,{childList:true,subtree:true}); }catch(e){}
+})();
+
+</script>
+
+<!-- Rarity Modal -->
+<div id="rarityModal" class="modal" aria-hidden="true">
+  <div class="box">
+    <div class="head">
+      <h3 id="rarityModalTitle" style="margin:0">Add Rarity</h3>
+      <button class="btn" data-close="rarityModal">Close</button>
+    </div>
+    <form id="rarityForm">
+      <input type="hidden" name="index">
+      <div class="row">
+        <div class="tierCell"><label>Tier (ID)</label><input name="id" required></div>
+        <div class="gradeCell"><label>Grade</label><input name="grade" required></div>
+        <div class="nameCell" style="flex:1"><label>Name</label><input name="name" required></div>
+      </div>
+      <div><label>Description</label><textarea name="desc" required></textarea></div>
+      <div>
+        <label>Colors (2–5)</label>
+        <div id="colorList"></div>
+        <button class="btn" id="addColor" type="button">Add color</button>
+      </div>
+      <div class="controls" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn danger" id="deleteRarity" type="button" style="display:none">Delete</button>
+        <button class="btn primary" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<script>
+/* v46 starter data */
+document.addEventListener('DOMContentLoaded',()=>{
+  try{
+    if(!window.s) return;
+    if(!Array.isArray(s.rarities)||s.rarities.length===0){
+      s.rarities=[
+        {id:"T1",grade:"F",name:"Common",desc:"Has no notable skills or powers.",colors:["#808080","#2f2f2f"]},
+        {id:"T2",grade:"E",name:"Uncommon",desc:"Possesses a useful, real-world skill.",colors:["#808000","#228B22"]},
+        {id:"T3",grade:"D",name:"Rare",desc:"Embodies peak human ability or exceptional latent potential.",colors:["#87CEEB","#0F52BA"]},
+        {id:"T4",grade:"C",name:"Epic",desc:"First step beyond human limits; displays minor supernatural traits.",colors:["#8A2BE2","#4B0082"]},
+        {id:"T5",grade:"B",name:"Legendary",desc:"Wields a defined, versatile superpower.",colors:["#FFBF00","#FFD700"]},
+        {id:"T6",grade:"A",name:"Mythic",desc:"Commands massive power, capable of destroying city blocks.",colors:["#DC143C","#FF2400"]},
+        {id:"T7",grade:"S",name:"Supreme",desc:"Power affects entire cities or nations; mythical in scale.",colors:["#C0C0C0","#FFFFFF"]},
+        {id:"T8",grade:"SS",name:"Arcane",desc:"Wields reality-bending or esoteric hax abilities with continental reach.",colors:["#008080","#00FFFF"]},
+        {id:"T9",grade:"SSS",name:"Celestial",desc:"Astronomical scale; can destroy moons or reshape planets.",colors:["#4B0082","#FF00FF"]},
+        {id:"T10",grade:"U",name:"Ultimate",desc:"Peak scalable force; can warp planetary systems or destroy stars.",colors:["#00008B","#33A1C9"]},
+        {id:"TX",grade:"X",name:"Godlike",desc:"Breaks the rules of its own universe; exerts deific dominion.",colors:["#FFD700","#FFF8DC"]},
+        {id:"TY",grade:"Y",name:"Multiversal",desc:"Exists across multiple realities; surpasses all universal laws.",colors:["#9400D3","#00FFFF"]},
+        {id:"TZ",grade:"Z",name:"Omnipotent",desc:"Absolute, unlimited authority over all narratives and existence.",colors:["#000000","#FFFFFF"]}
+      ];
+    }
+    if(!Array.isArray(s.entries)||s.entries.length===0){
+      s.entries=[
+        {id:"unit001",type:"unit",name:"Hero",rarity:"T3",level:5,hp:120,exp:250,desc:"A skilled adventurer.",img:"",world:"Earth",tags:["starter"]},
+        {id:"unit002",type:"unit",name:"Dragon",rarity:"T6",level:20,hp:5000,exp:5000,desc:"Ancient creature of flame.",img:"",world:"Mythos",tags:["beast","boss"]},
+        {id:"item001",type:"item",name:"Iron Sword",rarity:"T2",desc:"Basic weapon.",img:"",world:"Earth",tags:["weapon"]},
+        {id:"item002",type:"item",name:"Phoenix Feather",rarity:"T5",desc:"Revives a fallen ally.",img:"",world:"Mythos",tags:["consumable"]},
+        {id:"estate001",type:"estate",name:"Wooden Cabin",rarity:"T1",desc:"A small home in the forest.",price:500,world:"Earth"},
+        {id:"ride001",type:"ride",name:"Horse",rarity:"T2",desc:"Reliable travel companion.",price:1500,world:"Earth"}
+      ];
+    }
+    if(!s.wallet){ s.wallet={coins:1000,gems:50}; }
+    save(); renderRarities(); renderCodex(); renderCollection(); renderPlayer();
+  }catch(e){ console.warn('sample data init failed', e); }
+});
+</script>
+
+
+<script>
+/* v48 rarity modal controller */
+(function(){
+  const ready=(fn)=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',fn):fn();
+  ready(function(){
+    const modal=document.getElementById('rarityModal');
+    const form=document.getElementById('rarityForm');
+    const title=document.getElementById('rarityModalTitle');
+    const deleteBtn=document.getElementById('deleteRarity');
+    const colorList=document.getElementById('colorList');
+    const addColorBtn=document.getElementById('addColor');
+    if(!modal||!form) return;
+
+    function addColorControl(val){
+      const row=document.createElement('div'); row.className='colorRow';
+      const inp=document.createElement('input'); inp.type='color'; inp.value=val||'#ffffff';
+      const rm=document.createElement('button'); rm.type='button'; rm.className='btn danger'; rm.textContent='×';
+      rm.onclick=()=>{ if(colorList.children.length>2) row.remove(); };
+      row.append(inp,rm); colorList.appendChild(row);
+    }
+
+    function openRarityModal(idx){
+      window.openRarityModal=openRarityModal;
+      try{ form.reset(); }catch(e){}
+      colorList.innerHTML='';
+      let r={id:'',grade:'',name:'',desc:'',colors:['#6a00ff','#d4af37']};
+      const isEdit = Number.isInteger(idx);
+      if(isEdit && window.s && s.rarities && s.rarities[idx]) r = JSON.parse(JSON.stringify(s.rarities[idx]));
+      form.index.value = isEdit ? String(idx) : '';
+      form.id.value = r.id||'';
+      form.grade.value = r.grade||'';
+      form.name.value = r.name||'';
+      form.desc.value = r.desc||'';
+      (r.colors||['#6a00ff','#d4af37']).forEach(c=>addColorControl(c));
+      title.textContent = isEdit ? 'Edit Rarity' : 'Add Rarity';
+      deleteBtn.style.display = isEdit ? '' : 'none';
+      modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+    }
+    window.openRarityModal=openRarityModal;
+
+    // Bind add button to popup
+    const addBtn=document.getElementById('addRarity');
+    if(addBtn){ addBtn.onclick=(e)=>{ e.preventDefault(); openRarityModal(); }; }
+
+    // Delegated edit/delete buttons in table -> open modal
+    const body=document.getElementById('rarityBody');
+    if(body){
+      body.addEventListener('click', (e)=>{
+        const edit=e.target.closest('[data-edit-rarity]');
+        const del =e.target.closest('[data-del]');
+        if(edit){ e.preventDefault(); const i=parseInt(edit.dataset.editRarity||'-1'); if(!isNaN(i)) openRarityModal(i); }
+        if(del){  e.preventDefault(); const i=parseInt(del.dataset.del||'-1');  if(!isNaN(i)) openRarityModal(i); }
+      });
+    }
+
+    // Close buttons
+    document.querySelectorAll('[data-close="rarityModal"]').forEach(b=> b.onclick=()=>{
+      modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+    });
+
+    // Save rarity from modal
+    form.onsubmit=(ev)=>{
+      ev.preventDefault();
+      const id=form.id.value.trim(), grade=form.grade.value.trim(), name=form.name.value.trim(), desc=form.desc.value.trim();
+      if(!id||!grade||!name||!desc){ alert('Please fill all fields.'); return; }
+      const colors=[...colorList.querySelectorAll('input[type="color"]')].map(i=>i.value).slice(0,5);
+      if(colors.length<2){ alert('Add at least two colors.'); return; }
+      const payload={id,grade,name,desc,colors};
+      const idxStr=form.index.value;
+      if(idxStr===''){ s.rarities.push(payload); }
+      else { const i=+idxStr; if(s.rarities[i]) s.rarities[i]=payload; }
+      try{ save(); renderRarities(); fillRaritySelect(rCodex); fillRaritySelect(rCol); }catch(e){}
+      modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+    };
+
+    // Delete rarity from modal
+    deleteBtn.onclick=()=>{
+      const idxStr=form.index.value;
+      const i=idxStr===''?-1:+idxStr;
+      if(i>=0 && i<s.rarities.length && confirm('Delete this rarity?')){
+        s.rarities.splice(i,1);
+        try{ save(); renderRarities(); fillRaritySelect(rCodex); fillRaritySelect(rCol); }catch(e){}
+        modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+      }
+    };
+
+    // Color add
+    if(addColorBtn){ addColorBtn.onclick=()=>{ if(colorList.children.length<5) addColorControl('#ffffff'); }; }
+  });
+})();
+</script>
+
+</body>
+</html>
