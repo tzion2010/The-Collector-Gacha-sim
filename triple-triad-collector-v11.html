@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Triple Triad Collector — v11 (Single‑File)</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --text:#e6eef8;
+      --muted:#9bb0c9;
+      --accent:#6ad1ff;
+      --accent-2:#8b5cf6;
+      --radius:16px;
+      --shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+      --card-min: 148px;
+      --cell-size: clamp(130px, 28vw, 184px);
+      --num-ink: #ffe08a;
+      --num-bg: rgba(8,12,20,.55);
+      --num-br: rgba(255,255,255,.18);
+      --good:#4ade80;
+      --equal:#facc15;
+      --bad:#f87171;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(49,86,126,.25), transparent 60%),
+      radial-gradient(1000px 700px at 120% 20%, rgba(139,92,246,.18), transparent 60%),
+      var(--bg);color:var(--text);
+      font:14px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+    }
+
+    header{position:sticky;top:0;z-index:30;background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));backdrop-filter: blur(8px);border-bottom:1px solid rgba(255,255,255,.06)}
+    .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;}
+    .left,.right{display:flex;gap:8px;align-items:center}
+    .title{font-weight:700;letter-spacing:.4px;background:linear-gradient(90deg, var(--accent), var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .pill{background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);padding:6px 10px;border-radius:999px;box-shadow:var(--shadow)}
+
+    .tabs{display:flex;flex-wrap:wrap;gap:6px}
+    .tab-btn{appearance:none;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#18202b,#101620);color:var(--text);padding:8px 12px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow)}
+    .tab-btn.active{border-color:transparent;outline:0;background:linear-gradient(180deg,#1f2a38,#121a25);box-shadow:0 0 0 1px rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.5)}
+
+    main{padding:14px;max-width:1280px;margin:0 auto}
+    section.panel{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:none}
+    section.panel.active{display:block}
+
+    #wallet{display:flex;gap:10px;align-items:center}
+    .coin{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#192230,#0e141d);box-shadow:var(--shadow)}
+    .coin .dot{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff7, #0000), radial-gradient(circle at 30% 30%, #fff0, #0000), linear-gradient(135deg, #fde7a1, #f8c35e, #b37d2b)}
+    .coin-btn{margin-left:6px}
+
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .spacer{flex:1}
+    .btn{appearance:none;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#243244,#121a25);color:var(--text);padding:8px 12px;border-radius:12px;box-shadow:var(--shadow)}
+    .btn.primary{background:linear-gradient(180deg,#2a96ff,#1a6ad9);border:0}
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+    input, select, textarea{background:#0f1520;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--text);padding:8px 10px;box-shadow:var(--shadow)}
+    label{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
+    .sub{opacity:.9;color:var(--muted);font-size:12px}
+    .divider{height:1px;background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);margin:10px 0}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#162131,#0e1520)}
+
+    .chip{display:inline-flex;gap:6px;align-items:center;padding:3px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:11px;margin:2px;background:linear-gradient(180deg,#172233,#0f1725)}
+
+    .card{position:relative;border-radius:16px;overflow:hidden;background:#0d1320;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow);transition:transform .2s ease, box-shadow .2s ease;}
+    .card:hover{transform:translateY(-2px)}
+    .card .img{position:relative;aspect-ratio:3/4;background:#0c1320 center/cover no-repeat;border-bottom:1px solid rgba(255,255,255,.06);overflow:hidden}
+    .card .meta{padding:8px;display:flex;align-items:center;justify-content:space-between}
+    .rarity{font-size:11px;letter-spacing:.3px;opacity:.9}
+    .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* Numbers INSIDE image with readable chips */
+    .numbers{position:absolute;inset:0;pointer-events:none;user-select:none}
+    .numbers .pip{
+      position:absolute; display:inline-block;
+      padding:2px 8px; border-radius:10px;
+      background:var(--num-bg); border:1px solid var(--num-br);
+      color:var(--num-ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-weight:800; letter-spacing:.4px;
+      text-shadow:0 0 6px rgba(255,220,120,.55), 0 1px 1px rgba(0,0,0,.9);
+      box-shadow:0 2px 8px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+      backdrop-filter: blur(2px);
+    }
+    .card.mini .numbers .pip{ font-size:15px }
+    .card.lg .numbers .pip{ font-size:clamp(18px, 2.6vw, 26px) }
+    .boost1 .img{box-shadow: inset 0 0 0 2px rgba(250,204,21,.25)}
+    .boost2 .img{box-shadow: inset 0 0 0 2px rgba(250,204,21,.35), 0 0 12px rgba(250,204,21,.15)}
+    .boost3 .img{box-shadow: inset 0 0 0 2px rgba(250,204,21,.5), 0 0 18px rgba(250,204,21,.25)}
+
+    .n{top:6px;left:50%;transform:translateX(-50%)}
+    .s{bottom:6px;left:50%;transform:translateX(-50%)}
+    .e{right:6px;top:50%;transform:translateY(-50%)}
+    .w{left:6px;top:50%;transform:translateY(-50%)}
+
+    .ring{position:absolute;inset:0;border-radius:16px;border:3px solid transparent;pointer-events:none}
+    .ring.owner-p{border-image:linear-gradient(45deg,#5ad,#9ff) 1}
+    .ring.owner-ai{border-image:linear-gradient(45deg,#f77,#fbb) 1}
+
+    /* BOARD */
+    .board{display:grid;grid-template-columns:repeat(3, var(--cell-size));grid-auto-rows:var(--cell-size);gap:12px;background:linear-gradient(180deg,#0f1520,#0b1018);padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow);justify-content:center}
+    .cell{position:relative;width:var(--cell-size);height:var(--cell-size);border-radius:12px;background:linear-gradient(180deg,#121b29,#0d1420);border:1px dashed rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+    .cell.filled{border-style:solid}
+    .cell.blocked{background:repeating-linear-gradient(45deg, #141a26 0 10px, #0e131d 10px 20px); border:1px solid rgba(255,255,255,.08); cursor:not-allowed; opacity:.75}
+    .cell .tile-badge{position:absolute;top:6px;right:6px;font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,#172233,#0f1725)}
+
+    /* Hover preview edges */
+    .prev-edge{position:absolute;pointer-events:none;opacity:.85}
+    .prev-edge.n{top:0;left:0;right:0;height:6px;border-top-left-radius:12px;border-top-right-radius:12px}
+    .prev-edge.s{bottom:0;left:0;right:0;height:6px;border-bottom-left-radius:12px;border-bottom-right-radius:12px}
+    .prev-edge.e{top:0;right:0;bottom:0;width:6px;border-top-right-radius:12px;border-bottom-right-radius:12px}
+    .prev-edge.w{top:0;left:0;bottom:0;width:6px;border-top-left-radius:12px;border-bottom-left-radius:12px}
+
+    .hand{display:flex;gap:10px;flex-wrap:wrap}
+    .mini{width:124px}
+    .mini .img{border-bottom:1px solid rgba(255,255,255,.06)}
+    .lg{width:100%;height:100%;position:relative}
+    .card.lg .img{position:absolute;inset:6px;border-radius:12px;aspect-ratio:auto;border-bottom:none}
+    .card.lg .meta{display:none}
+
+    .cards-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill, minmax(var(--card-min), 1fr));}
+    .cards-grid[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+    .cards-grid[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+    .cards-grid[data-cols="5"]{grid-template-columns:repeat(5,1fr)}
+
+    .group{margin-bottom:14px}
+    .group h4{margin:8px 0 10px;font-size:13px;letter-spacing:.3px;color:#cfe0ff;opacity:.85}
+
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:50}
+    .modal.active{display:flex}
+    .modal .box{max-width:720px;width:92%;background:linear-gradient(180deg,#121a26,#0d131d);border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+    @keyframes popIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+    @keyframes flip{0%{transform:rotateY(0)}50%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+    .anim-pop{animation:popIn .3s ease both}
+    .anim-flip{animation:flip .35s ease both}
+    .glow{box-shadow:0 0 0 2px rgba(255,255,255,.18), 0 8px 28px rgba(0,180,255,.3)}
+
+    /* PACKS */
+    .packcard{position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#121a26,#0d131d);box-shadow:var(--shadow)}
+    .packcard .cover{width:100%;aspect-ratio:3/4;height:auto;background:#0d1320 center/cover no-repeat}
+    .packcard .body{padding:10px}
+    .packcard .title{font-weight:700;margin-bottom:4px}
+    .packcard .tags{display:flex;flex-wrap:wrap;margin-top:6px}
+    .pity{height:6px;background:#101820;border-radius:999px;border:1px solid rgba(255,255,255,.07);overflow:hidden;margin-top:8px}
+    .pity > div{height:100%;background:linear-gradient(90deg,#8b5cf6,#22d3ee)}
+
+    /* Presets list */
+    .preset{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:linear-gradient(180deg,#141b28,#0f1520)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="left">
+        <div class="title">Triple Triad Collector</div>
+        <div class="pill" id="version">v11</div>
+      </div>
+      <div class="right">
+        <div id="wallet">
+          <div class="coin"><span class="dot"></span><span id="coins">0</span></div>
+          <button id="btnEditMoney" class="btn coin-btn" title="Edit coins">Edit Coins</button>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <div class="tabs" id="tabs"></div>
+      <div class="spacer"></div>
+      <button class="btn" id="btnExport">Export JSON</button>
+      <label class="btn">
+        Import JSON
+        <input type="file" id="fileImport" style="display:none" accept="application/json" />
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <!-- PLAY -->
+    <section id="tab-play" class="panel active">
+      <div class="row">
+        <div class="badge">Rules:
+          <label style="display:flex;gap:6px;align-items:center;margin-left:10px"><input type="checkbox" id="ruleTypeAdv" checked> Type Advantage</label>
+          <label style="display:flex;gap:6px;align-items:center;margin-left:10px"><input type="checkbox" id="ruleSame"> Same</label>
+          <label style="display:flex;gap:6px;align-items:center;margin-left:10px"><input type="checkbox" id="rulePlus"> Plus</label>
+          <label style="display:flex;gap:6px;align-items:center;margin-left:10px"><input type="checkbox" id="ruleCombo" checked> Combo</label>
+          <label style="display:flex;gap:6px;align-items:center;margin-left:10px"><input type="checkbox" id="ruleBestLoot" checked> Best‑Card Loot</label>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <label class="badge">Mode
+          <select id="playMode">
+            <option value="classic">Classic</option>
+            <option value="draft">Draft</option>
+          </select>
+        </label>
+        <label class="badge">Difficulty
+          <select id="difficulty">
+            <option value="bronze">Bronze</option>
+            <option value="silver">Silver</option>
+            <option value="gold">Gold</option>
+            <option value="diamond">Diamond</option>
+            <option value="mythic">Mythic</option>
+          </select>
+        </label>
+        <label class="badge">Board
+          <select id="boardVariant">
+            <option value="classic">Classic</option>
+            <option value="blocks2">2 Blocks</option>
+            <option value="cross">Cross Blocks</option>
+            <option value="elemental">Elemental</option>
+            <option value="elem_blocks">Elemental + 2 Blocks</option>
+          </select>
+        </label>
+        <div class="spacer"></div>
+        <button id="btnPickHand" class="btn">Pick Hand</button>
+        <button id="btnStart" class="btn primary">Start</button>
+        <button id="btnRestart" class="btn">Restart</button>
+        <button id="btnForfeit" class="btn">Forfeit</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="cards-grid" data-cols="3">
+        <div>
+          <h3 style="margin:6px 0">Your Hand</h3>
+          <div id="playerHand" class="hand"></div>
+        </div>
+        <div>
+          <h3 style="margin:6px 0">Board</h3>
+          <div class="board" id="board"></div>
+          <div class="row" style="margin-top:10px">
+            <div class="badge">Turn: <strong id="turn"></strong></div>
+            <div class="spacer"></div>
+            <div class="badge">Score — You: <strong id="scP">0</strong> | AI: <strong id="scA">0</strong></div>
+          </div>
+          <div class="divider"></div>
+          <div id="bounties" class="row"></div>
+        </div>
+        <div>
+          <h3 style="margin:6px 0">AI Hand</h3>
+          <div id="aiHand" class="hand"></div>
+          <div class="sub" style="margin-top:6px">AI cards are hidden until placed.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLLECTION -->
+    <section id="tab-collection" class="panel">
+      <div class="row">
+        <input id="search" placeholder="Search name/type/rarity…" style="min-width:220px"/>
+        <input id="tagFilter" placeholder="Tags: #beast, tag:dragon…" style="min-width:220px"/>
+        <label class="badge"><input type="checkbox" id="tagAny"> Any tag</label>
+        <select id="filterRarity" style="max-width:160px"><option value="">All rarities</option></select>
+        <select id="filterType" style="max-width:160px"><option value="">All types</option></select>
+        <label class="badge"><input type="checkbox" id="groupByRarity"> Group by rarity</label>
+        <label class="badge" title="Auto-fit fills rows"><span class="sub" style="margin-right:6px">Layout</span>
+          <select id="colMode">
+            <option value="auto">Auto-fit</option>
+            <option value="3">3 cols</option>
+            <option value="4">4 cols</option>
+            <option value="5">5 cols</option>
+          </select>
+        </label>
+        <div class="spacer"></div>
+        <button class="btn" id="btnNewCard">New Card</button>
+        <button class="btn" id="btnUpgrade" title="Feed duplicates to power up">Upgrade</button>
+      </div>
+      <div class="divider"></div>
+      <div id="collection"></div>
+    </section>
+
+    <!-- EDITOR -->
+    <section id="tab-editor" class="panel">
+      <div class="row"><div class="badge">Create or update cards. Values are 1–10 (A = 10). Boosts add on top.</div></div>
+      <div class="divider"></div>
+      <div class="cards-grid" data-cols="2">
+        <div>
+          <form id="formCard">
+            <input type="hidden" id="cardId" />
+            <label>Name<input id="cardName" required maxlength="40"></label>
+            <label>Image URL<input id="cardImg" placeholder="https://… or leave blank to auto‑generate"></label>
+            <div class="cards-grid" data-cols="2">
+              <label>Type<select id="cardType"></select></label>
+              <label>Rarity<select id="cardRarity"></select></label>
+            </div>
+            <label>Tags (comma‑separated)<input id="cardTags" placeholder="beast, dragon, forest"></label>
+            <div class="cards-grid" data-cols="2">
+              <label>North (N)<input id="cardN" type="number" min="1" max="10" required></label>
+              <label>East (E)<input id="cardE" type="number" min="1" max="10" required></label>
+              <label>South (S)<input id="cardS" type="number" min="1" max="10" required></label>
+              <label>West (W)<input id="cardW" type="number" min="1" max="10" required></label>
+            </div>
+            <div class="row">
+              <button class="btn primary" type="submit">Save Card</button>
+              <button class="btn" id="btnResetEditor" type="button">Reset</button>
+              <button class="btn" id="btnDeleteCard" type="button">Delete</button>
+            </div>
+          </form>
+        </div>
+        <div>
+          <h3 style="margin:6px 0">Live Preview</h3>
+          <div id="preview" class="card mini" style="width:180px"></div>
+          <div class="sub" style="margin-top:8px">Tip: If no image URL is provided, an SVG is auto‑generated from name & type.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DECK -->
+    <section id="tab-deck" class="panel">
+      <div class="row">
+        <div class="badge">Select your default hand of 5 cards</div>
+        <div class="spacer"></div>
+        <input id="deckSearch" placeholder="Search deck…" style="max-width:220px">
+        <input id="deckTagFilter" placeholder="Tags: #legendary, tag:beast…" style="max-width:220px">
+        <label class="badge"><input type="checkbox" id="deckTagAny"> Any tag</label>
+        <select id="deckFilterRarity" style="max-width:150px"><option value="">All rarities</option></select>
+        <select id="deckFilterType" style="max-width:150px"><option value="">All types</option></select>
+        <select id="deckSort" style="max-width:160px">
+          <option value="rarity">Sort: Rarity</option>
+          <option value="name">Sort: Name</option>
+          <option value="type">Sort: Type</option>
+          <option value="power">Sort: Total Power</option>
+        </select>
+        <label class="badge"><input type="checkbox" id="deckGroupRarity"> Group by rarity</label>
+        <label class="badge"><span class="sub" style="margin-right:6px">Layout</span>
+          <select id="deckColMode">
+            <option value="auto">Auto-fit</option>
+            <option value="3">3 cols</option>
+            <option value="4">4 cols</option>
+            <option value="5">5 cols</option>
+          </select>
+        </label>
+        <button id="btnSaveDeck" class="btn primary">Save Default Hand</button>
+      </div>
+      <div class="divider"></div>
+      <div class="cards-grid" data-cols="2">
+        <div>
+          <h3 style="margin:6px 0">Your Selection (5)</h3>
+          <div id="deckChosen" class="hand"></div>
+        </div>
+        <div>
+          <h3 style="margin:6px 0">Your Collection</h3>
+          <div id="deckPool"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="row">
+        <h3 style="margin:6px 0">Presets</h3>
+        <div class="spacer"></div>
+        <input id="presetName" placeholder="Preset name…" style="max-width:220px">
+        <button id="btnSavePreset" class="btn">Save Preset</button>
+      </div>
+      <div id="presetList"></div>
+    </section>
+
+    <!-- PACKS / SHOP -->
+    <section id="tab-shop" class="panel">
+      <div class="row">
+        <div class="badge">Pack Creator & Shop</div>
+        <div class="spacer"></div>
+        <input id="packSearch" placeholder="Search packs by name…" style="max-width:220px">
+        <input id="packTagFilter" placeholder="Filter packs by tags…" style="max-width:220px">
+        <label class="badge"><input type="checkbox" id="packTagAny"> Any tag</label>
+        <select id="packSort" style="max-width:150px">
+          <option value="name">Sort: Name</option>
+          <option value="price">Sort: Price</option>
+          <option value="count">Sort: Count</option>
+        </select>
+        <button id="btnNewPack" class="btn primary">New Pack</button>
+      </div>
+      <div class="divider"></div>
+      <div class="cards-grid" id="packList"></div>
+
+      <div class="divider"></div>
+      <div class="cards-grid" data-cols="2">
+        <div class="panel" style="display:block">
+          <h3 style="margin:6px 0">Pack Editor</h3>
+          <div class="sub">Create themed packs that pull from cards by rarity and tags. Odds must total 100.</div>
+          <div class="divider"></div>
+          <form id="formPack">
+            <input type="hidden" id="packIndex" value="-1">
+            <label>Name<input id="packName" maxlength="40"></label>
+            <label>Image URL<input id="packImage" placeholder="https:// cover image"></label>
+            <div class="cards-grid" data-cols="2">
+              <label>Price<input id="packPrice" type="number" min="0" value="20"></label>
+              <label>Cards per Pack<input id="packCount" type="number" min="1" max="10" value="3"></label>
+            </div>
+            <label>Tags (comma‑separated)<input id="packTags" placeholder="fire, dragon, beast"></label>
+            <div class="cards-grid" data-cols="2">
+              <label>Common %<input id="pkC" type="number" min="0" max="100" value="60"></label>
+              <label>Uncommon %<input id="pkU" type="number" min="0" max="100" value="25"></label>
+              <label>Rare %<input id="pkR" type="number" min="0" max="100" value="10"></label>
+              <label>Epic %<input id="pkE" type="number" min="0" max="100" value="4"></label>
+              <label>Legendary %<input id="pkL" type="number" min="0" max="100" value="1"></label>
+              <label>Total<input id="pkTotal" value="100" readonly></label>
+            </div>
+            <div class="row">
+              <button class="btn primary" type="submit">Save Pack</button>
+              <button class="btn" id="btnResetPack" type="button">Reset</button>
+              <button class="btn" id="btnDeletePack" type="button">Delete</button>
+            </div>
+          </form>
+        </div>
+        <div class="panel" style="display:block">
+          <h3 style="margin:6px 0">Last Opened Pack</h3>
+          <div id="lastPack" class="hand"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HELP -->
+    <section id="tab-help" class="panel">
+      <h3 style="margin:6px 0">How to Play</h3>
+      <ol class="sub" style="line-height:1.8">
+        <li>Select Mode (Classic/Draft), Difficulty, and Board. Start a match.</li>
+        <li>Turns alternate. Place a card on an empty tile.</li>
+        <li>Same: if two or more adjacent opposing sides exactly match your placed sides, those cards flip.</li>
+        <li>Plus: if two or more sums (your side + opposing side) are equal, those cards flip.</li>
+        <li>If neither Same nor Plus triggers, basic rule compares touching numbers and flips lower adjacents.</li>
+        <li>Combo: any cards flipped by Same/Plus then perform one basic capture pass to their neighbors.</li>
+        <li>Type Advantage: attacking side gains bonuses/penalties based on Pokémon type effectiveness.</li>
+        <li>Elemental tiles: cards on an elemental tile get +1 if matching type, otherwise −1 (min 1, max 10).</li>
+        <li>Best‑Card Loot: on win, you capture the AI’s strongest card.</li>
+      </ol>
+    </section>
+  </main>
+
+  <!-- Result Modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="box">
+      <h3 id="modalTitle">Result</h3>
+      <div id="modalBody" class="sub" style="margin:10px 0 12px"></div>
+      <div class="row">
+        <button id="modalOk" class="btn primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Money Editor Modal -->
+  <div id="moneyModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="moneyTitle">
+    <div class="box">
+      <h3 id="moneyTitle">Edit Coins</h3>
+      <div class="sub">Adjust your balance. Changes persist in localStorage.</div>
+      <div class="divider"></div>
+      <div class="row">
+        <label style="min-width:200px">Coins
+          <input id="moneyInput" type="number" min="0" step="1" value="0" />
+        </label>
+        <button id="btnCoinsMinus10" class="btn">−10</button>
+        <button id="btnCoinsPlus10" class="btn">+10</button>
+        <button id="btnCoinsPlus100" class="btn">+100</button>
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        <div class="spacer"></div>
+        <button id="btnMoneyCancel" class="btn">Cancel</button>
+        <button id="btnMoneySave" class="btn primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upgrade Modal -->
+  <div id="upgradeModal" class="modal" role="dialog" aria-modal="true">
+    <div class="box">
+      <h3>Upgrade Card</h3>
+      <div id="upgradeInfo" class="sub"></div>
+      <div class="divider"></div>
+      <div class="row">
+        <button class="btn" id="upN">+1 N</button>
+        <button class="btn" id="upE">+1 E</button>
+        <button class="btn" id="upS">+1 S</button>
+        <button class="btn" id="upW">+1 W</button>
+        <div class="spacer"></div>
+        <button class="btn" id="btnUpgradeClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Draft Modal -->
+  <div id="draftModal" class="modal" role="dialog" aria-modal="true">
+    <div class="box">
+      <h3>Draft Mode</h3>
+      <div class="sub">Pick from the shared pool. You and AI alternate until both have 5.</div>
+      <div class="divider"></div>
+      <div class="cards-grid" id="draftPool"></div>
+      <div class="divider"></div>
+      <div class="cards-grid" data-cols="2">
+        <div>
+          <h4>Your Picks</h4>
+          <div id="draftPicksP" class="hand"></div>
+        </div>
+        <div>
+          <h4>AI Picks</h4>
+          <div id="draftPicksAI" class="hand"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="sub" id="draftStatus">Your turn to pick…</div>
+        <div class="spacer"></div>
+        <button id="btnDraftStart" class="btn primary" disabled>Start Match</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  ;(() => {
+    function clone(x){ try{ return (typeof structuredClone==='function')? structuredClone(x): JSON.parse(JSON.stringify(x)); }catch(_){ return JSON.parse(JSON.stringify(x)) } }
+
+    var LS_KEYS = {
+      cards:'ttc_cards_v11',
+      wallet:'ttc_wallet_v11',
+      settings:'ttc_settings_v11',
+      deck:'ttc_deck_v11',
+      stats:'ttc_stats_v11',
+      packsList:'ttc_packs_list_v11',
+      pity:'ttc_pity_v11',
+      bounties:'ttc_bounties_v11',
+      presets:'ttc_presets_v11'
+    };
+
+    var RARITIES = [
+      {key:'Common', color:'#9bb0c9', weight:1},
+      {key:'Uncommon', color:'#6ad1ff', weight:2},
+      {key:'Rare', color:'#8b5cf6', weight:3},
+      {key:'Epic', color:'#e879f9', weight:4},
+      {key:'Legendary', color:'#f8c35e', weight:5}
+    ];
+    var RORDER = ['Common','Uncommon','Rare','Epic','Legendary'];
+
+    var POKETYPES = ['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
+
+    var TYPE_CHART = {
+      Normal:   {sup:[],               not:['Rock','Steel'],     imm:['Ghost']},
+      Fire:     {sup:['Grass','Ice','Bug','Steel'], not:['Fire','Water','Rock','Dragon'], imm:[]},
+      Water:    {sup:['Fire','Ground','Rock'], not:['Water','Grass','Dragon'], imm:[]},
+      Electric: {sup:['Water','Flying'], not:['Electric','Grass','Dragon'], imm:['Ground']},
+      Grass:    {sup:['Water','Ground','Rock'], not:['Fire','Grass','Poison','Flying','Bug','Dragon','Steel'], imm:[]},
+      Ice:      {sup:['Grass','Ground','Flying','Dragon'], not:['Fire','Water','Ice','Steel'], imm:[]},
+      Fighting: {sup:['Normal','Ice','Rock','Dark','Steel'], not:['Poison','Flying','Psychic','Bug','Fairy'], imm:['Ghost']},
+      Poison:   {sup:['Grass','Fairy'], not:['Poison','Ground','Rock','Ghost'], imm:['Steel']},
+      Ground:   {sup:['Fire','Electric','Poison','Rock','Steel'], not:['Grass','Bug'], imm:['Flying']},
+      Flying:   {sup:['Grass','Fighting','Bug'], not:['Electric','Rock','Steel'], imm:[]},
+      Psychic:  {sup:['Fighting','Poison'], not:['Psychic','Steel'], imm:['Dark']},
+      Bug:      {sup:['Grass','Psychic','Dark'], not:['Fire','Fighting','Poison','Flying','Ghost','Steel','Fairy'], imm:[]},
+      Rock:     {sup:['Fire','Ice','Flying','Bug'], not:['Fighting','Ground','Steel'], imm:[]},
+      Ghost:    {sup:['Psychic','Ghost'], not:['Dark'], imm:['Normal']},
+      Dragon:   {sup:['Dragon'], not:['Steel'], imm:['Fairy']},
+      Dark:     {sup:['Psychic','Ghost'], not:['Fighting','Dark','Fairy'], imm:[]},
+      Steel:    {sup:['Ice','Rock','Fairy'], not:['Fire','Water','Electric','Steel'], imm:[]},
+      Fairy:    {sup:['Fighting','Dragon','Dark'], not:['Fire','Poison','Steel'], imm:[]}
+    };
+
+    var DEFAULT_SETTINGS = {
+      ruleTypeAdv:true, ruleSame:false, rulePlus:true, ruleCombo:true, ruleBestLoot:true,
+      playMode:'classic', difficulty:'bronze', boardVariant:'classic'
+    };
+    var DEFAULT_WALLET = { coins: 120 };
+    var DEFAULT_STATS = { wins:0, losses:0, ties:0 };
+    var DEFAULT_PITY = { packsWithoutEpic:0, threshold:8 };
+
+    function uid(){ return Math.random().toString(36).slice(2,10); }
+    function todayKey(){
+      var d = new Date();
+      var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+      return y+'-'+m+'-'+dd;
+    }
+
+    function parseTags(str){
+      if(!str) return [];
+      return String(str).split(/[,\s]+/).map(s=>s.trim().replace(/^#|^tag:|^rltag:/i,'').toLowerCase()).filter(Boolean);
+    }
+
+    function svgData(name, ptype){
+      var hueMap = {
+        Normal:210, Fire:10, Water:205, Electric:52, Grass:120, Ice:195, Fighting:5, Poison:290,
+        Ground:38, Flying:200, Psychic:320, Bug:90, Rock:35, Ghost:265, Dragon:215, Dark:280, Steel:35, Fairy:300
+      };
+      var h = hueMap[ptype] != null ? hueMap[ptype] : 210;
+      var grad1 = 'hsl('+h+' 70% 25%)', grad2 = 'hsl('+h+' 80% 45%)';
+      var label = encodeURIComponent(String(name||'').slice(0,18));
+      var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='300' height='400'>\
+        <defs>\
+          <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>\
+            <stop offset='0%' stop-color='"+grad1+"'/>\
+            <stop offset='100%' stop-color='"+grad2+"'/>\
+          </linearGradient>\
+        </defs>\
+        <rect fill='url(#g)' width='100%' height='100%' rx='24'/>\
+        <g fill='white' opacity='.95' font-family='system-ui,Segoe UI,Roboto' text-anchor='middle'>\
+          <text x='150' y='200' font-size='26' font-weight='700'>"+label+"</text>\
+          <text x='150' y='235' font-size='13' opacity='.85'>"+(ptype||'Type')+"</text>\
+        </g>\
+      </svg>";
+      return 'data:image/svg+xml;utf8,' + svg;
+    }
+
+    function seedCards(){
+      var samples = [
+        ['Blaze Wolf','Fire', [8,3,6,5], 'Rare',     'beast, fire, swift'],
+        ['Frost Warden','Ice', [5,8,5,3], 'Uncommon','guardian, ice, tundra'],
+        ['Storm Drake','Electric',[7,6,4,7],'Epic',  'dragon, storm, sky'],
+        ['Stone Giant','Rock',[9,2,7,2],  'Rare',    'golem, rocky, heavy'],
+        ['Wind Sprite','Flying',[2,7,4,8],'Uncommon','spirit, sky, nimble'],
+        ['Tide Serpent','Water',[6,5,7,4],'Rare',    'serpent, ocean, sleek'],
+        ['Sanctum Angel','Fairy',[8,6,6,4],'Epic',   'angelic, holy, light'],
+        ['Night Revenant','Ghost',[7,4,7,3],'Rare',  'undead, shadow, cursed'],
+        ['Venom Ooze','Poison',[3,6,3,8], 'Common',  'slime, toxic, swamp'],
+        ['Rook Knight','Steel',[6,5,6,5], 'Common',  'soldier, armor, chess'],
+        ['Shade Rogue','Dark',[5,7,3,6],  'Uncommon','assassin, shadow, rogue'],
+        ['Sylvan Dryad','Grass',[4,6,7,4],'Common',  'forest, spirit, nature'],
+        ['Cinder Imp','Fire',[3,8,3,6],   'Common',  'imp, trickster, ember'],
+        ['Sky Colossus','Flying',[8,4,8,3],'Epic',   'giant, sky, ancient'],
+        ['Arcane Sphinx','Psychic',[6,7,6,7],'Epic', 'mystic, riddle, guardian'],
+        ['Sand Golem','Ground',[6,6,5,5], 'Rare',    'desert, construct, dune'],
+        ['Spirit Wisp','Ghost',[5,4,6,6], 'Uncommon','spirit, lantern, guide']
+      ];
+      return samples.map(function(t){
+        var name=t[0], ty=t[1], sides=t[2], r=t[3], tags=parseTags(t[4]);
+        return { id:uid(), name:name, element:ty, type:ty, rarity:r, tags:tags, n:sides[0], e:sides[1], s:sides[2], w:sides[3], boosts:{n:0,e:0,s:0,w:0}, imageUrl: svgData(name, ty) };
+      });
+    }
+
+    function load(key, fallback){
+      try{ var raw = localStorage.getItem(key); return raw? JSON.parse(raw): clone(fallback); }
+      catch(_){ return clone(fallback) }
+    }
+    function save(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)); }catch(_){ } }
+
+    var state = {
+      cards: load(LS_KEYS.cards, seedCards()),
+      wallet: load(LS_KEYS.wallet, clone(DEFAULT_WALLET)),
+      settings: Object.assign({}, DEFAULT_SETTINGS, load(LS_KEYS.settings, {})),
+      deck: load(LS_KEYS.deck, []),
+      stats: load(LS_KEYS.stats, clone(DEFAULT_STATS)),
+      packsList: load(LS_KEYS.packsList, []),
+      pity: load(LS_KEYS.pity, clone(DEFAULT_PITY)),
+      bounties: load(LS_KEYS.bounties, {}),
+      presets: load(LS_KEYS.presets, []),
+      match: null,
+      lastAnim: { placed:-1, flipped:[] }
+    };
+
+    if(!Array.isArray(state.packsList) || state.packsList.length===0){
+      state.packsList = [
+        {name:'Starter Trio', image:'', price:20, count:3, tags:['fire','water','grass'], odds:{Common:60,Uncommon:25,Rare:10,Epic:4,Legendary:1}},
+        {name:'Skies & Storms', image:'', price:28, count:3, tags:['flying','electric','storm','sky'], odds:{Common:50,Uncommon:28,Rare:14,Epic:7,Legendary:1}},
+        {name:'Shadows', image:'', price:28, count:3, tags:['dark','ghost','shadow'], odds:{Common:52,Uncommon:28,Rare:12,Epic:7,Legendary:1}},
+        {name:'Legends', image:'', price:48, count:3, tags:['legendary','ancient','dragon'], odds:{Common:15,Uncommon:25,Rare:30,Epic:20,Legendary:10}},
+      ];
+      save(LS_KEYS.packsList, state.packsList);
+    }
+
+    function ensureBoosts(c){ if(!c.boosts){ c.boosts={n:0,e:0,s:0,w:0}; } return c; }
+    state.cards = state.cards.map(ensureBoosts);
+
+    function qs(s, r){ return (r||document).querySelector(s); }
+    function qsa(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+    function fmtVal(v){ return v===10? 'A': String(v); }
+    function clamp(x,min,max){ return Math.max(min, Math.min(max, x)); }
+    function clampVal(v){ v=Number(v)||1; return clamp(v,1,10); }
+    function pow(c){ return (c.n+c.e+c.s+c.w) + ((c.boosts?.n||0)+(c.boosts?.e||0)+(c.boosts?.s||0)+(c.boosts?.w||0)); }
+    function rarityWeight(r){ for(var i=0;i<RARITIES.length;i++){ if(RARITIES[i].key===r) return RARITIES[i].weight; } return 1; }
+    function rarityColor(r){ for(var i=0;i<RARITIES.length;i++){ if(RARITIES[i].key===r) return RARITIES[i].color; } return '#9bb0c9'; }
+    function cardById(id){ for(var i=0;i<state.cards.length;i++){ if(state.cards[i].id===id) return state.cards[i]; } }
+
+    var TABS = [['play','Play'], ['collection','Collection'], ['editor','Editor'], ['deck','Deck'], ['shop','Packs'], ['help','Help']];
+    function initTabs(){
+      var wrap = qs('#tabs'); wrap.innerHTML='';
+      for(var i=0;i<TABS.length;i++){
+        var key=TABS[i][0], label=TABS[i][1];
+        var b = document.createElement('button'); b.className='tab-btn'; b.textContent=label; b.setAttribute('data-tab', key);
+        if(key==='play') b.classList.add('active');
+        b.onclick = (function(k){ return function(){ showTab(k); }; })(key);
+        wrap.appendChild(b);
+      }
+    }
+    function showTab(key){
+      qsa('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-tab')===key); });
+      qsa('section.panel').forEach(function(p){ p.classList.toggle('active', p.id==='tab-'+key); });
+    }
+
+    function renderTagsChips(tags){
+      var wrap=document.createElement('div'); wrap.className='tags';
+      (tags||[]).forEach(function(t){ var c=document.createElement('span'); c.className='chip'; c.textContent=t; wrap.appendChild(c); });
+      return wrap;
+    }
+
+    function totalBoost(c){ var b=c.boosts||{}; return (b.n||0)+(b.e||0)+(b.s||0)+(b.w||0); }
+    function boostClass(c){ var t=totalBoost(c); if(t>=7) return 'boost3'; if(t>=3) return 'boost2'; if(t>=1) return 'boost1'; return ''; }
+
+    function renderCardEl(card, opts){
+      opts = opts||{}; ensureBoosts(card);
+      var size = opts.size || 'mini';
+      var owner = opts.owner || null;
+      var hide = !!opts.hide;
+      var el = document.createElement('div');
+      var bClass = boostClass(card);
+      el.className = 'card ' + (size==='mini'? 'mini':'lg') + (bClass? (' '+bClass):'');
+      el.title = card.name + ' — ' + (card.type||card.element) + ' — ' + card.rarity + (card.tags&&card.tags.length? (' — '+card.tags.join(', ')):'');
+      var img = document.createElement('div'); img.className='img'; img.style.backgroundImage='url(\"'+(card.imageUrl||svgData(card.name, card.type||card.element))+'\")';
+
+      var nums=document.createElement('div'); nums.className='numbers';
+      function mk(k,v){ var s=document.createElement('div'); var boost=(card.boosts&&card.boosts[k.toLowerCase()])||0; s.className='pip '+k; s.textContent= hide? '': fmtVal(clampVal(v+boost)); return s; }
+      nums.appendChild(mk('n',card.n)); nums.appendChild(mk('e',card.e)); nums.appendChild(mk('s',card.s)); nums.appendChild(mk('w',card.w));
+      img.appendChild(nums);
+
+      var ring=document.createElement('div'); ring.className='ring '+(owner? ('owner-'+owner):'');
+
+      el.appendChild(img); el.appendChild(ring);
+
+      if(size==='mini'){
+        var meta=document.createElement('div'); meta.className='meta';
+        var name=document.createElement('div'); name.className='name'; name.textContent=card.name;
+        var rar=document.createElement('div'); rar.className='rarity'; rar.textContent=card.rarity; rar.style.color=rarityColor(card.rarity);
+        meta.appendChild(name); meta.appendChild(rar);
+        el.appendChild(meta);
+        if(card.tags && card.tags.length){
+          var chips = renderTagsChips(card.tags);
+          chips.style.padding='6px 8px 8px'; el.appendChild(chips);
+        }
+      }
+      return el;
+    }
+
+    function applyGridMode(container, mode){
+      container.className='cards-grid';
+      container.setAttribute('data-cols', '');
+      if(mode==='auto'){ container.style.setProperty('--card-min','148px'); }
+      else { container.setAttribute('data-cols', mode); }
+    }
+
+    function parseTagQuery(q){
+      var tokens=parseTags(q);
+      return tokens;
+    }
+    function hasTags(card, tokens, any){
+      if(!tokens.length) return true;
+      var ct = (card.tags||[]).map(t=>String(t).toLowerCase());
+      if(any){ return tokens.some(t=> ct.some(x=> x.indexOf(t)>-1)); }
+      return tokens.every(t=> ct.some(x=> x.indexOf(t)>-1));
+    }
+
+    function refreshCollection(){
+      var wrapper = qs('#collection'); wrapper.innerHTML='';
+      var mode = qs('#colMode').value || 'auto'; applyGridMode(wrapper, mode);
+      var term = (qs('#search').value||'').trim().toLowerCase();
+      var fr = qs('#filterRarity').value;
+      var ft = qs('#filterType').value;
+      var group = qs('#groupByRarity').checked;
+      var tagTokens = parseTagQuery(qs('#tagFilter').value);
+      var any = qs('#tagAny').checked;
+
+      var filtered = state.cards.filter(function(c){
+        if(fr && c.rarity!==fr) return false;
+        if(ft && (c.type||c.element)!==ft) return false;
+        if(!hasTags(c, tagTokens, any)) return false;
+        if(term){
+          var t = (c.name+' '+(c.type||c.element)+' '+c.rarity+' '+(c.tags||[]).join(' ')).toLowerCase();
+          if(t.indexOf(term)===-1) return false;
+        }
+        return true;
+      });
+
+      if(!group){
+        filtered.forEach(function(c){
+          var el = renderCardEl(c,{size:'mini'});
+          el.style.cursor='pointer'; el.onclick=function(){ loadIntoEditor(c); };
+          wrapper.appendChild(el);
+        });
+      }else{
+        var byR = {}; filtered.forEach(function(c){ (byR[c.rarity] = byR[c.rarity]||[]).push(c); });
+        for(var i=RORDER.length-1;i>=0;i--){
+          var k = RORDER[i]; if(!byR[k]||byR[k].length===0) continue;
+          var groupEl = document.createElement('div'); groupEl.className='group';
+          var h = document.createElement('h4'); h.textContent = k + ' — ' + byR[k].length;
+          groupEl.appendChild(h);
+          var grid = document.createElement('div'); grid.className='cards-grid'; grid.setAttribute('data-cols', mode==='auto'?'':mode);
+          byR[k].forEach(function(c){
+            var el = renderCardEl(c,{size:'mini'});
+            el.style.cursor='pointer'; el.onclick=function(){ loadIntoEditor(c); };
+            grid.appendChild(el);
+          });
+          groupEl.appendChild(grid);
+          wrapper.appendChild(groupEl);
+        }
+      }
+    }
+
+    function populateEnums(){
+      var rOpts = RARITIES.map(function(r){return '<option>'+r.key+'</option>';}).join('');
+      var tOpts = POKETYPES.map(function(e){return '<option>'+e+'</option>';}).join('');
+      qs('#filterRarity').innerHTML='<option value=\"\">All rarities</option>'+rOpts;
+      qs('#filterType').innerHTML='<option value=\"\">All types</option>'+tOpts;
+      qs('#cardRarity').innerHTML = rOpts;
+      qs('#cardType').innerHTML = tOpts;
+      qs('#deckFilterRarity').innerHTML = '<option value=\"\">All rarities</option>'+rOpts;
+      qs('#deckFilterType').innerHTML = '<option value=\"\">All types</option>'+tOpts;
+      qs('#difficulty').value = state.settings.difficulty||'bronze';
+      qs('#playMode').value = state.settings.playMode||'classic';
+      qs('#boardVariant').value = state.settings.boardVariant||'classic';
+    }
+
+    function loadIntoEditor(card){
+      showTab('editor');
+      qs('#cardId').value = card.id;
+      qs('#cardName').value = card.name;
+      qs('#cardImg').value = card.imageUrl || '';
+      qs('#cardType').value = (card.type||card.element||'Normal');
+      qs('#cardRarity').value = card.rarity;
+      qs('#cardTags').value = (card.tags||[]).join(', ');
+      qs('#cardN').value = card.n; qs('#cardE').value = card.e; qs('#cardS').value = card.s; qs('#cardW').value = card.w;
+      refreshPreview();
+    }
+    function resetEditor(){
+      qs('#formCard').reset();
+      qs('#cardId').value='';
+      qs('#cardType').value='Normal';
+      qs('#cardRarity').value='Common';
+      qs('#cardTags').value='';
+      refreshPreview();
+    }
+    function refreshPreview(){
+      var id = qs('#cardId').value;
+      var existing = id? cardById(id): null;
+      var boosts = existing && existing.boosts? clone(existing.boosts): {n:0,e:0,s:0,w:0};
+      var c = {
+        name: qs('#cardName').value || 'New Card',
+        imageUrl: qs('#cardImg').value || svgData(qs('#cardName').value||'New Card', qs('#cardType').value||'Normal'),
+        type: qs('#cardType').value || 'Normal',
+        element: qs('#cardType').value || 'Normal',
+        rarity: qs('#cardRarity').value || 'Common',
+        tags: parseTags(qs('#cardTags').value||''),
+        n: clampVal(qs('#cardN').value||5), e: clampVal(qs('#cardE').value||5), s: clampVal(qs('#cardS').value||5), w: clampVal(qs('#cardW').value||5),
+        boosts: boosts
+      };
+      var wrap = qs('#preview'); wrap.innerHTML=''; wrap.appendChild(renderCardEl(c,{size:'mini'}));
+    }
+    function upsertCard(e){
+      e.preventDefault();
+      var id = qs('#cardId').value || uid();
+      var existing = cardById(id);
+      var card = {
+        id:id,
+        name: (qs('#cardName').value||'').trim()||'Unnamed',
+        imageUrl: (qs('#cardImg').value||'').trim() || svgData((qs('#cardName').value||'').trim()||'Unnamed', qs('#cardType').value||'Normal'),
+        type: qs('#cardType').value, element: qs('#cardType').value,
+        rarity: qs('#cardRarity').value,
+        tags: parseTags(qs('#cardTags').value||''),
+        n: clampVal(qs('#cardN').value), e: clampVal(qs('#cardE').value), s: clampVal(qs('#cardS').value), w: clampVal(qs('#cardW').value),
+        boosts: existing && existing.boosts? existing.boosts: {n:0,e:0,s:0,w:0}
+      };
+      var pos = -1; for(var i=0;i<state.cards.length;i++){ if(state.cards[i].id===id){ pos=i; break; } }
+      if(pos>=0) state.cards[pos]=card; else state.cards.push(card);
+      save(LS_KEYS.cards, state.cards);
+      refreshCollection(); refreshDeckPool();
+      toast('Saved: '+card.name);
+    }
+    function deleteCard(){
+      var id = qs('#cardId').value; if(!id) return;
+      var c = cardById(id); if(!c) return;
+      if(confirm('Delete card \"'+c.name+'\"?')){
+        state.cards = state.cards.filter(function(x){ return x.id!==id; });
+        save(LS_KEYS.cards, state.cards);
+        refreshCollection(); refreshDeckPool(); resetEditor();
+        toast('Card deleted');
+      }
+    }
+
+    /* Upgrade system */
+    var upgradeTargetId = null;
+    function openUpgrade(){
+      var id = qs('#cardId').value;
+      if(!id){ toast('Open a card in Editor first'); return; }
+      upgradeTargetId = id;
+      updateUpgradeInfo();
+      qs('#upgradeModal').classList.add('active');
+    }
+    function updateUpgradeInfo(){
+      var base = cardById(upgradeTargetId); if(!base) return;
+      ensureBoosts(base);
+      var dupCount = state.cards.filter(function(c){ return c.id!==base.id && c.name===base.name && (c.type||c.element)===(base.type||base.element); }).length;
+      var txt = 'Duplicates available to feed: '+dupCount+' — Boost caps per side: +3. Current boosts N+'+(base.boosts.n||0)+' E+'+(base.boosts.e||0)+' S+'+(base.boosts.s||0)+' W+'+(base.boosts.w||0);
+      qs('#upgradeInfo').textContent = txt;
+      ['upN','upE','upS','upW'].forEach(function(idBtn){ qs('#'+idBtn).disabled = dupCount<=0; });
+    }
+    function feedDuplicate(sideKey){
+      var base = cardById(upgradeTargetId); if(!base) return;
+      ensureBoosts(base);
+      if(base.boosts[sideKey]>=3){ toast('Side already at cap'); return; }
+      var dupIdx = state.cards.findIndex(function(c){ return c.id!==base.id && c.name===base.name && (c.type||c.element)===(base.type||base.element); });
+      if(dupIdx===-1){ toast('No duplicates left'); return; }
+      // Burn duplicate
+      state.cards.splice(dupIdx,1);
+      base.boosts[sideKey] = (base.boosts[sideKey]||0)+1;
+      save(LS_KEYS.cards, state.cards);
+      updateUpgradeInfo(); refreshCollection(); refreshDeckPool(); refreshPreview();
+      toast('Boosted '+sideKey.toUpperCase()+' by +1');
+    }
+
+    function applyDeckGridMode(mode){
+      var pool = qs('#deckPool');
+      pool.className='cards-grid'; pool.setAttribute('data-cols','');
+      if(mode!=='auto'){ pool.setAttribute('data-cols', mode); }
+    }
+    function refreshDeckPool(){
+      var pool = qs('#deckPool'); pool.innerHTML='';
+      applyDeckGridMode(qs('#deckColMode').value||'auto');
+      var chosen = {}; state.deck.forEach(function(i){ chosen[i]=true; });
+
+      var term = (qs('#deckSearch').value||'').trim().toLowerCase();
+      var fr = qs('#deckFilterRarity').value;
+      var ft = qs('#deckFilterType').value;
+      var sort = qs('#deckSort').value;
+      var tagTokens = parseTagQuery(qs('#deckTagFilter').value);
+      var any = qs('#deckTagAny').checked;
+      var group = qs('#deckGroupRarity').checked;
+
+      var cards = state.cards.filter(function(c){
+        if(fr && c.rarity!==fr) return false;
+        if(ft && (c.type||c.element)!==ft) return false;
+        if(!hasTags(c, tagTokens, any)) return false;
+        if(term){
+          var t = (c.name+' '+(c.type||c.element)+' '+c.rarity+' '+(c.tags||[]).join(' ')).toLowerCase();
+          if(t.indexOf(term)===-1) return false;
+        }
+        return true;
+      });
+
+      cards.sort(function(a,b){
+        if(sort==='name') return a.name.localeCompare(b.name);
+        if(sort==='type') return (a.type||a.element).localeCompare(b.type||b.element) || a.name.localeCompare(b.name);
+        if(sort==='power') return (pow(b)-pow(a)) || rarityWeight(b.rarity)-rarityWeight(a.rarity);
+        return (rarityWeight(b.rarity)-rarityWeight(a.rarity)) || (pow(b)-pow(a)) || a.name.localeCompare(b.name);
+      });
+
+      function addCard(c, parent){
+        var el = renderCardEl(c,{size:'mini'});
+        el.style.cursor='pointer';
+        el.style.outline = chosen[c.id]? '2px solid var(--accent)': 'none';
+        el.onclick = function(){ toggleDeck(c.id); };
+        parent.appendChild(el);
+      }
+
+      if(!group){
+        cards.forEach(function(c){ addCard(c, pool); });
+      }else{
+        var byR = {}; cards.forEach(function(c){ (byR[c.rarity]=byR[c.rarity]||[]).push(c); });
+        for(var i=RORDER.length-1;i>=0;i--){
+          var k=RORDER[i]; if(!byR[k]||byR[k].length===0) continue;
+          var groupEl=document.createElement('div'); groupEl.className='group';
+          var h=document.createElement('h4'); h.textContent=k+' — '+byR[k].length;
+          var grid=document.createElement('div'); grid.className='cards-grid'; grid.setAttribute('data-cols', (qs('#deckColMode').value||'auto')==='auto'? '': qs('#deckColMode').value);
+          groupEl.appendChild(h); groupEl.appendChild(grid); pool.appendChild(groupEl);
+          byR[k].forEach(function(c){ addCard(c, grid); });
+        }
+      }
+      renderDeckChosen();
+    }
+    function renderDeckChosen(){
+      var wrap = qs('#deckChosen'); wrap.innerHTML='';
+      state.deck.forEach(function(id){
+        var c = cardById(id); if(!c) return;
+        var el = renderCardEl(c,{size:'mini'}); el.style.cursor='pointer';
+        el.onclick = function(){ toggleDeck(id); };
+        wrap.appendChild(el);
+      });
+    }
+    function toggleDeck(id){
+      var i = state.deck.indexOf(id);
+      if(i>=0) state.deck.splice(i,1);
+      else{
+        if(state.deck.length>=5){ toast('Hand is limited to 5. Remove one first.'); return; }
+        state.deck.push(id);
+      }
+      save(LS_KEYS.deck, state.deck);
+      refreshDeckPool();
+    }
+
+    // Presets
+    function savePreset(){
+      if(state.deck.length!==5){ toast('Select exactly 5 to save'); return; }
+      var name = (qs('#presetName').value||'').trim() || ('Preset '+(state.presets.length+1));
+      state.presets.push({id:uid(), name:name, deck: clone(state.deck)});
+      save(LS_KEYS.presets, state.presets);
+      renderPresets(); qs('#presetName').value='';
+    }
+    function renderPresets(){
+      var list = qs('#presetList'); list.innerHTML='';
+      state.presets.forEach(function(p){
+        var row=document.createElement('div'); row.className='preset';
+        var left=document.createElement('div'); left.textContent=p.name+' — ['+p.deck.length+' cards]';
+        var right=document.createElement('div');
+        var bLoad=document.createElement('button'); bLoad.className='btn'; bLoad.textContent='Load'; bLoad.onclick=function(){ state.deck=clone(p.deck); save(LS_KEYS.deck,state.deck); refreshDeckPool(); toast('Preset loaded'); };
+        var bDel=document.createElement('button'); bDel.className='btn'; bDel.textContent='Delete'; bDel.onclick=function(){ if(confirm('Delete preset?')){ state.presets=state.presets.filter(x=>x.id!==p.id); save(LS_KEYS.presets,state.presets); renderPresets(); } };
+        right.appendChild(bLoad); right.appendChild(bDel);
+        row.appendChild(left); row.appendChild(right);
+        list.appendChild(row);
+      });
+    }
+
+    function updateWallet(){ qs('#coins').textContent = state.wallet.coins; }
+
+    // ---------- Pity meter ----------
+    function getPityProgress(){ return clamp(state.pity.packsWithoutEpic || 0, 0, state.pity.threshold); }
+    function renderPackList(){
+      var list = qs('#packList'); list.innerHTML='';
+      var q = (qs('#packSearch').value||'').trim().toLowerCase();
+      var tagTokens = parseTagQuery(qs('#packTagFilter').value);
+      var any = qs('#packTagAny').checked;
+      var sort = qs('#packSort').value;
+      var pityProgress = getPityProgress();
+
+      var packs = state.packsList.filter(function(p){
+        var t = (p.name+' '+(p.tags||[]).join(' ')).toLowerCase();
+        if(q && t.indexOf(q)===-1) return false;
+        if(tagTokens.length){
+          var pt = (p.tags||[]).map(x=>String(x).toLowerCase());
+          if(any){ if(!tagTokens.some(tg=> pt.some(x=> x.indexOf(tg)>-1))) return false; }
+          else { if(!tagTokens.every(tg=> pt.some(x=> x.indexOf(tg)>-1))) return false; }
+        }
+        return true;
+      });
+
+      packs.sort(function(a,b){
+        if(sort==='price') return (a.price||0)-(b.price||0) || a.name.localeCompare(b.name);
+        if(sort==='count') return (a.count||0)-(b.count||0) || a.name.localeCompare(b.name);
+        return a.name.localeCompare(b.name);
+      });
+
+      packs.forEach(function(p, idx){
+        var card = document.createElement('div'); card.className='packcard';
+        var cover = document.createElement('div'); cover.className='cover'; cover.style.backgroundImage='url(\"'+(p.image||'')+'\")'; card.appendChild(cover);
+        var body = document.createElement('div'); body.className='body';
+        var title = document.createElement('div'); title.className='title'; title.textContent = p.name;
+        body.appendChild(title);
+        var meta = document.createElement('div'); meta.className='sub'; meta.textContent = 'Price: '+(p.price||0)+' — Cards: '+(p.count||3);
+        body.appendChild(meta);
+        var pity = document.createElement('div'); pity.className='pity';
+        var bar = document.createElement('div'); bar.style.width = Math.round((pityProgress/state.pity.threshold)*100)+'%'; pity.appendChild(bar);
+        var pityText = document.createElement('div'); pityText.className='sub'; pityText.textContent = 'Pity '+pityProgress+'/'+state.pity.threshold+' (Epic+)';
+        body.appendChild(pity); body.appendChild(pityText);
+        var tags = renderTagsChips(p.tags||[]); body.appendChild(tags);
+        var row = document.createElement('div'); row.className='row'; row.style.marginTop='8px';
+        var bBuy = document.createElement('button'); bBuy.className='btn primary'; bBuy.textContent='Buy'; bBuy.onclick=function(){ buyPackByIndex(idx); };
+        var bEdit = document.createElement('button'); bEdit.className='btn'; bEdit.textContent='Edit'; bEdit.onclick=function(){ loadPackIntoEditor(idx); };
+        row.appendChild(bBuy); row.appendChild(bEdit); body.appendChild(row);
+        card.appendChild(body);
+        list.appendChild(card);
+      });
+    }
+
+    function loadPackIntoEditor(idx){
+      var p = state.packsList[idx];
+      qs('#packIndex').value = idx;
+      qs('#packName').value = p.name||'';
+      qs('#packImage').value = p.image||'';
+      qs('#packPrice').value = p.price||20;
+      qs('#packCount').value = p.count||3;
+      qs('#packTags').value = (p.tags||[]).join(', ');
+      qs('#pkC').value = (p.odds&&p.odds.Common)||0;
+      qs('#pkU').value = (p.odds&&p.odds.Uncommon)||0;
+      qs('#pkR').value = (p.odds&&p.odds.Rare)||0;
+      qs('#pkE').value = (p.odds&&p.odds.Epic)||0;
+      qs('#pkL').value = (p.odds&&p.odds.Legendary)||0;
+      updatePackTotal();
+      toast('Loaded pack: '+(p.name||('Pack '+idx)));
+      showTab('shop');
+    }
+    function resetPackEditor(){
+      qs('#formPack').reset();
+      qs('#packIndex').value = -1;
+      qs('#packPrice').value = 20;
+      qs('#packCount').value = 3;
+      qs('#pkC').value=60; qs('#pkU').value=25; qs('#pkR').value=10; qs('#pkE').value=4; qs('#pkL').value=1;
+      qs('#pkTotal').value=100;
+    }
+    function updatePackTotal(){
+      var t = Number(qs('#pkC').value||0)+Number(qs('#pkU').value||0)+Number(qs('#pkR').value||0)+Number(qs('#pkE').value||0)+Number(qs('#pkL').value||0);
+      qs('#pkTotal').value = t;
+    }
+    function submitPack(e){
+      e.preventDefault();
+      var t = Number(qs('#pkTotal').value);
+      if(t!==100){ toast('Odds must total 100'); return; }
+      var idx = Number(qs('#packIndex').value)||-1;
+      var pack = {
+        name: (qs('#packName').value||'').trim()||'Unnamed Pack',
+        image: (qs('#packImage').value||'').trim(),
+        price: Math.max(0, Number(qs('#packPrice').value)||0),
+        count: Math.min(10, Math.max(1, Number(qs('#packCount').value)||3)),
+        tags: parseTags(qs('#packTags').value||''),
+        odds: { Common:Number(qs('#pkC').value)||0, Uncommon:Number(qs('#pkU').value)||0, Rare:Number(qs('#pkR').value)||0, Epic:Number(qs('#pkE').value)||0, Legendary:Number(qs('#pkL').value)||0 }
+      };
+      if(idx>=0) state.packsList[idx]=pack; else state.packsList.push(pack);
+      save(LS_KEYS.packsList, state.packsList);
+      renderPackList();
+      toast('Pack saved');
+      qs('#packIndex').value = -1;
+    }
+    function deletePack(){
+      var idx = Number(qs('#packIndex').value)||-1;
+      if(idx<0) return;
+      if(confirm('Delete pack?')){
+        state.packsList.splice(idx,1);
+        save(LS_KEYS.packsList, state.packsList);
+        renderPackList();
+        resetPackEditor();
+        toast('Pack deleted');
+      }
+    }
+    function rollRarityWeighted(odds){
+      var keys=['Common','Uncommon','Rare','Epic','Legendary']; var acc=[]; var total=0;
+      for(var i=0;i<keys.length;i++){ var k=keys[i]; var v=Math.max(0, Number(odds[k]||0)); total+=v; acc.push([k,v]); }
+      if(total<=0) return 'Common';
+      var r=Math.random()*total, sum=0; for(var j=0;j<acc.length;j++){ sum+=acc[j][1]; if(r<sum) return acc[j][0]; } return 'Common';
+    }
+    function randomCardForRarityAndTags(rarity, tags){
+      var pool = state.cards.filter(function(c){
+        if(c.rarity!==rarity) return false;
+        if(!tags || !tags.length) return true;
+        return hasTags(c, tags, true);
+      });
+      if(pool.length>0) return clone(pool[Math.floor(Math.random()*pool.length)]);
+      var tagTypes = (tags||[]).map(x=>x.charAt(0).toUpperCase()+x.slice(1)).filter(t=>POKETYPES.indexOf(t)>-1);
+      var type = tagTypes.length? tagTypes[Math.floor(Math.random()*tagTypes.length)] : POKETYPES[Math.floor(Math.random()*POKETYPES.length)];
+      var base = {Common:18, Uncommon:20, Rare:22, Epic:25, Legendary:28}[rarity] || 18;
+      function j(){ var v = Math.round((base/4) + (Math.random()*6)); return clamp(v,1,10); }
+      var sides=[j(),j(),j(),j()]; sides[Math.floor(Math.random()*4)] = {Common:8,Uncommon:9,Rare:10,Epic:10,Legendary:10}[rarity];
+      var name = rarity+' '+type+' #'+String(Math.floor(Math.random()*900)+100);
+      return { id:uid(), name:name, type:type, element:type, rarity:rarity, tags:clone(tags||[]), n:sides[0], e:sides[1], s:sides[2], w:sides[3], boosts:{n:0,e:0,s:0,w:0}, imageUrl: svgData(name, type) };
+    }
+    function applyPityAdjustment(draws, pack){
+      var hasEpic = draws.some(function(c){ return c.rarity==='Epic' || c.rarity==='Legendary'; });
+      if(hasEpic){
+        state.pity.packsWithoutEpic = 0;
+      }else{
+        state.pity.packsWithoutEpic = (state.pity.packsWithoutEpic||0)+1;
+        if(state.pity.packsWithoutEpic >= (state.pity.threshold||8)){
+          // Force upgrade last draw to Epic
+          var forced = randomCardForRarityAndTags('Epic', pack.tags||[]);
+          draws[draws.length-1] = forced;
+          state.pity.packsWithoutEpic = 0;
+        }
+      }
+      save(LS_KEYS.pity, state.pity);
+    }
+    function buyPackByIndex(idx){
+      var p = state.packsList[idx]; if(!p) return;
+      if(state.wallet.coins<(p.price||0)){ toast('Not enough coins'); return; }
+      state.wallet.coins -= (p.price||0);
+      var results = [];
+      for(var i=0;i<(p.count||3);i++){
+        var rar = rollRarityWeighted(p.odds||{});
+        var card = randomCardForRarityAndTags(rar, p.tags||[]);
+        if(!card.id) card.id = uid();
+        results.push(card);
+      }
+      applyPityAdjustment(results, p);
+      results.forEach(function(card){ state.cards.push(card); });
+
+      save(LS_KEYS.wallet, state.wallet); save(LS_KEYS.cards, state.cards);
+      updateWallet(); renderPackResults(results); refreshCollection(); refreshDeckPool(); renderPackList();
+      toast('Opened '+(p.name||'pack'));
+    }
+    function openFreePackByName(name){
+      var idx = state.packsList.findIndex(function(p){ return (p.name||'').toLowerCase()===String(name||'').toLowerCase(); });
+      if(idx===-1){ toast('Pack not found: '+name); return; }
+      var p = state.packsList[idx];
+      var results = [];
+      for(var i=0;i<(p.count||3);i++){
+        var rar = rollRarityWeighted(p.odds||{});
+        var card = randomCardForRarityAndTags(rar, p.tags||[]);
+        if(!card.id) card.id = uid();
+        results.push(card);
+      }
+      applyPityAdjustment(results, p);
+      results.forEach(function(card){ state.cards.push(card); });
+      save(LS_KEYS.cards, state.cards); renderPackResults(results); refreshCollection(); refreshDeckPool(); renderPackList();
+      toast('Free pack: '+p.name);
+    }
+    function renderPackResults(cards){ var wrap = qs('#lastPack'); wrap.innerHTML=''; cards.forEach(function(c){ wrap.appendChild(renderCardEl(c,{size:'mini'})); }); }
+
+    // ---------- Difficulty & board variants ----------
+    function difficultyInfo(){
+      var d = (state.settings.difficulty||'bronze');
+      if(d==='bronze') return {mult:1.0, minWeight:1, preferTop:0.1};
+      if(d==='silver') return {mult:1.25, minWeight:2, preferTop:0.25};
+      if(d==='gold') return {mult:1.6, minWeight:3, preferTop:0.5};
+      if(d==='diamond') return {mult:2.1, minWeight:3, preferTop:0.75};
+      if(d==='mythic') return {mult:2.8, minWeight:4, preferTop:0.9};
+      return {mult:1.0, minWeight:1, preferTop:0.1};
+    }
+    function boardLayout(variant){
+      // returns {cells:[{blocked:false, element:null}, ... 9]}
+      var cells = Array(9).fill(0).map(function(){ return {blocked:false, element:null}; });
+      if(variant==='blocks2'){ cells[1].blocked=true; cells[7].blocked=true; }
+      if(variant==='cross'){ cells[1].blocked=true; cells[3].blocked=true; cells[5].blocked=true; cells[7].blocked=true; }
+      if(variant==='elemental'){
+        // assign 3 random elemental tiles
+        var idxs=[0,2,6,8,4]; shuffle(idxs); var pick=idxs.slice(0,3);
+        for(var i=0;i<pick.length;i++){ cells[pick[i]].element = POKETYPES[Math.floor(Math.random()*POKETYPES.length)]; }
+      }
+      if(variant==='elem_blocks'){
+        cells[1].blocked=true; cells[7].blocked=true;
+        var idxs=[0,2,6,8,4,3,5]; shuffle(idxs); var pick=idxs.slice(0,3);
+        for(var i=0;i<pick.length;i++){ cells[pick[i]].element = POKETYPES[Math.floor(Math.random()*POKETYPES.length)]; }
+      }
+      return {cells:cells};
+    }
+
+    // ---------- Battle Logic ----------
+    function newMatch(){
+      var mode = state.settings.playMode||'classic';
+      var diff = difficultyInfo();
+      var layout = boardLayout(state.settings.boardVariant||'classic');
+      var board = Array(9).fill(null);
+      // store meta in match
+      var meta = {cells: layout.cells};
+
+      if(mode==='draft'){
+        startDraft(meta, diff);
+        return;
+      }
+      // Classic
+      var playerHand = (state.deck.length===5? state.deck: pickRandomHand()).map(function(id){ return clone(ensureBoosts(cardById(id))); });
+      var aiHand = pickAIHand(diff).map(function(c){ return clone(ensureBoosts(c)); });
+      state.match = { board:board, playerHand:playerHand, aiHand:aiHand, aiHandOrig: clone(aiHand), turn: (Math.random()<.5? 'P':'AI'), placed:0, meta:meta, mode:'classic', diff:diff };
+      renderMatch();
+      if(state.match.turn==='AI') setTimeout(aiTurn, 450);
+    }
+
+    // Draft flow
+    function startDraft(meta, diff){
+      // Build pool of 12 varied cards
+      var pool = state.cards.slice(); shuffle(pool);
+      pool = pool.slice(0, Math.min(12, pool.length)).map(clone);
+      state.match = { board:Array(9).fill(null), playerHand:[], aiHand:[], aiHandOrig:[], placed:0, turn:'P', meta:meta, mode:'draft', diff:diff, draftPool:pool };
+      renderDraftModal();
+    }
+    function renderDraftModal(){
+      var m = state.match; var modal=qs('#draftModal'); modal.classList.add('active');
+      var poolWrap=qs('#draftPool'); poolWrap.innerHTML='';
+      m.draftPool.forEach(function(c,idx){
+        if(!c) return;
+        var el=renderCardEl(c,{size:'mini'}); el.style.cursor='pointer';
+        el.onclick=function(){
+          if(m.playerHand.length>=5 || !m.draftPool[idx]) return;
+          m.playerHand.push(clone(m.draftPool[idx]));
+          m.draftPool[idx]=null;
+          renderDraftModal();
+          // AI pick
+          setTimeout(function(){
+            var bestIdx=-1, bestScore=-1;
+            for(var i=0;i<m.draftPool.length;i++){
+              var cc=m.draftPool[i]; if(!cc) continue;
+              var score = pow(cc) + rarityWeight(cc.rarity)*50;
+              if(score>bestScore){ bestScore=score; bestIdx=i; }
+            }
+            if(bestIdx>=0){
+              m.aiHand.push(clone(m.draftPool[bestIdx]));
+              m.draftPool[bestIdx]=null;
+            }
+            renderDraftModal();
+          }, 250);
+        };
+        poolWrap.appendChild(el);
+      });
+      var pWrap=qs('#draftPicksP'); pWrap.innerHTML=''; m.playerHand.forEach(function(c){ pWrap.appendChild(renderCardEl(c,{size:'mini'})); });
+      var aWrap=qs('#draftPicksAI'); aWrap.innerHTML=''; m.aiHand.forEach(function(c){ aWrap.appendChild(renderCardEl(c,{size:'mini'})); });
+      qs('#draftStatus').textContent = (m.playerHand.length<5)? 'Your turn to pick…' : 'Draft complete.';
+      var startBtn=qs('#btnDraftStart'); startBtn.disabled = !(m.playerHand.length===5 && m.aiHand.length===5);
+      startBtn.onclick = function(){
+        modal.classList.remove('active');
+        m.aiHandOrig = clone(m.aiHand);
+        m.turn = (Math.random()<.5? 'P':'AI');
+        renderMatch();
+        if(m.turn==='AI') setTimeout(aiTurn, 450);
+      };
+    }
+
+    function pickRandomHand(){ var pool=state.cards.slice(); shuffle(pool); return pool.slice(0,5).map(function(c){ return c.id; }); }
+    function pickAIHand(diff){
+      var minW = diff.minWeight||1;
+      var pool = state.cards.filter(function(c){ return rarityWeight(c.rarity)>=minW; }).slice();
+      // prefer top power subset
+      pool.sort(function(a,b){ return pow(b)-pow(a); });
+      var take = Math.max(8, Math.min(20, Math.floor(pool.length * (diff.preferTop||0.5))));
+      var top = pool.slice(0, take);
+      shuffle(top);
+      return top.slice(0,5);
+    }
+
+    function renderMatch(){
+      updateWallet(); renderBountiesUI();
+      qs('#ruleTypeAdv').checked = !!state.settings.ruleTypeAdv;
+      qs('#ruleSame').checked = !!state.settings.ruleSame;
+      qs('#rulePlus').checked = !!state.settings.rulePlus;
+      qs('#ruleCombo').checked = !!state.settings.ruleCombo;
+      qs('#ruleBestLoot').checked = !!state.settings.ruleBestLoot;
+
+      var ph = qs('#playerHand'); ph.innerHTML='';
+      state.match.playerHand.forEach(function(c,idx){ var el=renderCardEl(c,{size:'mini'}); el.style.cursor='pointer'; el.onclick=function(){ selectCardForPlay(idx); }; ph.appendChild(el); });
+
+      var ah = qs('#aiHand'); ah.innerHTML='';
+      state.match.aiHand.forEach(function(c){ var hidden=renderCardEl(c,{size:'mini',hide:true}); hidden.querySelector('.numbers').style.opacity=.15; ah.appendChild(hidden); });
+
+      var b = qs('#board'); b.innerHTML='';
+      for(var i=0;i<9;i++){
+        (function(i){
+          var cell=document.createElement('div'); cell.className='cell';
+          var meta = state.match.meta.cells[i];
+          if(meta.blocked){ cell.classList.add('blocked'); }
+          if(meta.element){ var badge=document.createElement('div'); badge.className='tile-badge'; badge.textContent=meta.element; cell.appendChild(badge); }
+          cell.onmouseenter=function(){ previewAtCell(i); };
+          cell.onmouseleave=function(){ clearPreview(); };
+          cell.onclick=function(){ placeSelected(i); };
+          b.appendChild(cell);
+        })(i);
+      }
+      qs('#turn').textContent = state.match.turn==='P'? 'You':'AI';
+      updateScore();
+    }
+
+    var selectedIdx = null;
+    function selectCardForPlay(idx){
+      if(state.match.turn!=='P') return;
+      selectedIdx = idx;
+      qsa('#playerHand .card').forEach(function(el,i){ el.style.outline = (i===idx? '2px solid var(--accent)':'none'); });
+    }
+
+    function previewAtCell(cellIdx){
+      clearPreview();
+      if(state.match.turn!=='P' || selectedIdx==null) return;
+      var b = qs('#board'); var cell = qsa('.cell', b)[cellIdx];
+      if(!cell || cell.classList.contains('blocked') || state.match.board[cellIdx]) return;
+      // Compare against neighbors
+      adjacent(cellIdx).forEach(function(pair){
+        var i=pair[0], dir=pair[1], target=state.match.board[i];
+        if(!target) return;
+        var cmp = compareSidesPreview(state.match.playerHand[selectedIdx], cellIdx, target.card, i);
+        var edge = document.createElement('div'); edge.className='prev-edge '+dir;
+        var color = cmp[0]>cmp[1]? 'var(--good)': (cmp[0]===cmp[1]? 'var(--equal)': 'var(--bad)');
+        edge.style.background = color;
+        cell.appendChild(edge);
+      });
+    }
+    function clearPreview(){ qsa('.prev-edge').forEach(function(e){ e.remove(); }); }
+
+    function placeSelected(cellIdx){
+      if(state.match.turn!=='P' || selectedIdx==null) return;
+      if(state.match.board[cellIdx]) return;
+      if(state.match.meta.cells[cellIdx].blocked) return;
+      var card = state.match.playerHand.splice(selectedIdx,1)[0];
+      playCardTo(cellIdx, card, 'P'); selectedIdx=null;
+      if(state.match.placed<9 && state.match.turn==='AI') setTimeout(aiTurn,480);
+    }
+    function aiTurn(){
+      var aiHand=state.match.aiHand, board=state.match.board;
+      var best=null;
+      for(var i=0;i<aiHand.length;i++){
+        for(var pos=0;pos<9;pos++){
+          if(board[pos]) continue;
+          if(state.match.meta.cells[pos].blocked) continue;
+          var score = simulateFlipScore(pos, aiHand[i], 'AI');
+          var priority = score*10 + centerBias(pos);
+          if(!best || priority>best.priority) best = { cardIndex:i, pos:pos, priority:priority };
+        }
+      }
+      var card = state.match.aiHand.splice(best.cardIndex,1)[0];
+      playCardTo(best.pos, card, 'AI');
+    }
+    function centerBias(pos){ return (pos===4)? 2: ([1,3,5,7].indexOf(pos)>-1? 1: 0); }
+    function simulateFlipScore(pos, card, owner){ return calcFlips(pos, card, owner).length; }
+
+    function typeMod(att, def){
+      if(!state.settings.ruleTypeAdv) return 0;
+      var a = TYPE_CHART[att] || {sup:[],not:[],imm:[]};
+      if(a.imm.indexOf(def)>-1) return -2;
+      if(a.sup.indexOf(def)>-1) return +2;
+      if(a.not.indexOf(def)>-1) return -1;
+      return 0;
+    }
+    function tileMod(pos, type){
+      var meta = state.match && state.match.meta && state.match.meta.cells[pos];
+      if(!meta || !meta.element) return 0;
+      return (meta.element===type)? +1 : -1;
+    }
+    function getSideVal(card, sideKey){ return clampVal((card[sideKey]||1) + ((card.boosts && card.boosts[sideKey])||0)); }
+
+    function playCardTo(pos, card, owner){
+      state.match.board[pos] = { card:ensureBoosts(card), owner:owner }; state.match.placed++;
+      var normal = calcFlips(pos, card, owner);
+      var same = state.settings.ruleSame? calcSameCaptures(pos, card, owner): [];
+      var plus = state.settings.rulePlus? calcPlusCaptures(pos, card, owner): [];
+      var initialFlips = Array.from(new Set([].concat(normal, same, plus)));
+      initialFlips.forEach(function(i){ if(state.match.board[i]) state.match.board[i].owner = owner; });
+      var comboFlips = [];
+      if(state.settings.ruleCombo && (same.length>0 || plus.length>0)){ comboFlips = runComboChain(initialFlips, owner); }
+      state.lastAnim.placed = pos; state.lastAnim.flipped = initialFlips.concat(comboFlips);
+      state.match.turn = (state.match.turn==='P')? 'AI':'P';
+      renderBoardAfterMove(); updateScore(); if(state.match.placed>=9) endMatch();
+    }
+    function runComboChain(startIndices, owner){
+      var flipped = new Set(), q = startIndices.slice();
+      while(q.length){
+        var from = q.shift();
+        adjacent(from).forEach(function(pair){
+          var i = pair[0], target = state.match.board[i], source = state.match.board[from];
+          if(!target || !source || target.owner===owner) return;
+          var cmp = compareSides(source.card, from, target.card, i);
+          if(cmp[0] > cmp[1]){ target.owner = owner; if(!flipped.has(i)){ flipped.add(i); q.push(i); } }
+        });
+      }
+      return Array.from(flipped);
+    }
+    function calcFlips(pos, card, owner){
+      var res=[]; adjacent(pos).forEach(function(pair){
+        var i=pair[0], other=state.match.board[i]; if(!other || other.owner===owner) return;
+        var cmp = compareSides(card, pos, other.card, i);
+        if(cmp[0]>cmp[1]) res.push(i);
+      }); return res;
+    }
+    function calcSameCaptures(pos, card, owner){
+      var eq=[]; adjacent(pos).forEach(function(pair){
+        var i=pair[0], other=state.match.board[i]; if(!other) return;
+        var cmp = compareSides(card, pos, other.card, i);
+        if(cmp[0]===cmp[1]) eq.push(i);
+      }); return (eq.length>=2)? eq: [];
+    }
+    function calcPlusCaptures(pos, card, owner){
+      var sums={}; adjacent(pos).forEach(function(pair){
+        var i=pair[0], other=state.match.board[i]; if(!other) return;
+        var cmp = compareSides(card, pos, other.card, i);
+        var s = cmp[0]+cmp[1]; (sums[s]=sums[s]||[]).push(i);
+      });
+      var result=[]; for(var k in sums){ if(sums[k].length>=2){ sums[k].forEach(function(idx){ if(result.indexOf(idx)===-1) result.push(idx); }); } }
+      return result;
+    }
+    function adjacent(pos){
+      var row = Math.floor(pos/3), col = pos%3, list=[];
+      if(row>0) list.push([pos-3,'N']); if(row<2) list.push([pos+3,'S']); if(col>0) list.push([pos-1,'W']); if(col<2) list.push([pos+1,'E']);
+      return list;
+    }
+    function facingSides(cardA, posA, cardB, posB){
+      var rA=Math.floor(posA/3), cA=posA%3, rB=Math.floor(posB/3), cB=Math.floor(posB%3), sideA, sideB, keyA, keyB;
+      if(rB===rA-1 && cB===cA){ sideA=cardA.n; sideB=cardB.s; keyA='n'; keyB='s'; }
+      else if(rB===rA+1 && cB===cA){ sideA=cardA.s; sideB=cardB.n; keyA='s'; keyB='n'; }
+      else if(cB===cA-1 && rB===rA){ sideA=cardA.w; sideB=cardB.e; keyA='w'; keyB='e'; }
+      else if(cB===cA+1 && rB===rA){ sideA=cardA.e; sideB=cardB.w; keyA='e'; keyB='w'; }
+      return [sideA, sideB, keyA, keyB];
+    }
+    function compareSides(cardA, posA, cardB, posB){
+      ensureBoosts(cardA); ensureBoosts(cardB);
+      var fs = facingSides(cardA, posA, cardB, posB);
+      var sideA = fs[0], sideB = fs[1], keyA=fs[2], keyB=fs[3];
+      var modA = typeMod(cardA.type||cardA.element, cardB.type||cardB.element) + tileMod(posA, cardA.type||cardA.element);
+      var modB = tileMod(posB, cardB.type||cardB.element); // defender gets only tile bonus/penalty
+      var effA = clampVal(sideA + (cardA.boosts[keyA]||0) + modA);
+      var effB = clampVal(sideB + (cardB.boosts[keyB]||0) + modB);
+      return [effA, effB];
+    }
+    function compareSidesPreview(cardA, posA, cardB, posB){
+      // same as compareSides but non-mutating
+      return compareSides(cardA, posA, cardB, posB);
+    }
+    function renderBoardAfterMove(){
+      var b=qs('#board');
+      qsa('.cell', b).forEach(function(cell,i){
+        var slot=state.match.board[i]; cell.classList.toggle('filled', !!slot); cell.innerHTML='';
+        var meta = state.match.meta.cells[i];
+        if(meta.blocked){ cell.classList.add('blocked'); }
+        if(meta.element){ var badge=document.createElement('div'); badge.className='tile-badge'; badge.textContent=meta.element; cell.appendChild(badge); }
+        if(slot){
+          var el=renderCardEl(slot.card,{size:'lg', owner: (slot.owner==='P'? 'p':'ai')});
+          if(i===state.lastAnim.placed) el.classList.add('anim-pop','glow');
+          if(state.lastAnim.flipped.indexOf(i)>-1) el.classList.add('anim-flip');
+          cell.appendChild(el); setTimeout(function(){ el.classList.remove('glow'); }, 450);
+        }
+        cell.onmouseenter=function(){ previewAtCell(i); };
+        cell.onmouseleave=function(){ clearPreview(); };
+      });
+      qs('#turn').textContent = state.match.turn==='P'? 'You':'AI';
+      var ph=qs('#playerHand'); ph.innerHTML=''; state.match.playerHand.forEach(function(c,idx){ var el=renderCardEl(c,{size:'mini'}); el.style.cursor='pointer'; el.onclick=function(){ selectCardForPlay(idx); }; ph.appendChild(el); });
+      var ah=qs('#aiHand'); ah.innerHTML=''; state.match.aiHand.forEach(function(c){ var hidden=renderCardEl(c,{size:'mini', hide:true}); hidden.querySelector('.numbers').style.opacity=.15; ah.appendChild(hidden); });
+    }
+    function updateScore(){
+      var p=0,a=0; state.match.board.forEach(function(slot){ if(!slot) return; if(slot.owner==='P') p++; else a++; });
+      qs('#scP').textContent=p; qs('#scA').textContent=a;
+    }
+    function pickBestCard(list){
+      var best=null; for(var i=0;i<list.length;i++){ var c=list[i]; var score = rarityWeight(c.rarity)*100 + pow(c); if(!best || score>best.score) best={card:clone(c), score:score}; } return best? best.card: null;
+    }
+
+    // ---------- Bounties ----------
+    function generateBounties(){
+      var t = todayKey();
+      if(state.bounties.date===t && Array.isArray(state.bounties.tasks)) return;
+      var types = clone(POKETYPES); shuffle(types);
+      var tasks = [
+        { id: uid(), kind:'win_with_type', param: types[0], text:'Win a match with at least one '+types[0]+' card in hand', reward:{coins:30} },
+        { id: uid(), kind:'win_board', param:'elemental', text:'Win on an Elemental board', reward:{coins:40} },
+        { id: uid(), kind:'win_mode', param:'draft', text:'Win a match in Draft mode', reward:{pack:'Starter Trio'} }
+      ];
+      state.bounties = { date:t, tasks: tasks };
+      save(LS_KEYS.bounties, state.bounties);
+    }
+    function renderBountiesUI(){
+      generateBounties();
+      var wrap = qs('#bounties'); wrap.innerHTML='';
+      state.bounties.tasks.forEach(function(task){
+        var badge=document.createElement('div'); badge.className='badge'; badge.textContent = (task.done? '✓ ':'') + task.text + (task.reward.coins? (' — '+task.reward.coins+'c'): (task.reward.pack? ' — free pack': ''));
+        wrap.appendChild(badge);
+      });
+    }
+    function checkBounties(win, context){
+      if(!win) return;
+      generateBounties();
+      var changed=false;
+      state.bounties.tasks.forEach(function(task){
+        if(task.done) return;
+        if(task.kind==='win_with_type'){
+          if(context.handTypes && context.handTypes.indexOf(task.param)>-1){ task.done=true; rewardTask(task); changed=true; }
+        }
+        if(task.kind==='win_board'){
+          if(context.boardVariant==='elemental' || context.boardVariant==='elem_blocks'){ task.done=true; rewardTask(task); changed=true; }
+        }
+        if(task.kind==='win_mode'){
+          if(context.mode==='draft'){ task.done=true; rewardTask(task); changed=true; }
+        }
+      });
+      if(changed){ save(LS_KEYS.bounties, state.bounties); renderBountiesUI(); }
+    }
+    function rewardTask(task){
+      if(task.reward.coins){ state.wallet.coins += task.reward.coins; save(LS_KEYS.wallet, state.wallet); updateWallet(); toast('Bounty: +'+task.reward.coins+' coins'); }
+      if(task.reward.pack){ openFreePackByName(task.reward.pack); toast('Bounty: Free pack ('+task.reward.pack+')'); }
+    }
+
+    function endMatch(){
+      var p=0,a=0; state.match.board.forEach(function(slot){ if(!slot) return; if(slot.owner==='P') p++; else a++; });
+      var diff = state.match.diff || {mult:1};
+      var base = (p+a<9)? 0 : 5; // safety
+      var result, reward; if(p>a){ result='You Win!'; reward=Math.round((10+base)*diff.mult); state.stats.wins++; } else if(p<a){ result='You Lose'; reward=Math.round((2+base/5)*diff.mult*0.6); state.stats.losses++; } else { result='Tie'; reward=Math.round((5+base/2)*diff.mult*0.8); state.stats.ties++; }
+      state.wallet.coins += reward; save(LS_KEYS.wallet,state.wallet); save(LS_KEYS.stats,state.stats); updateWallet();
+      var captured=null;
+      if(p>a && state.match.aiHandOrig){
+        if(state.settings.ruleBestLoot){ captured = pickBestCard(state.match.aiHandOrig); } else { captured = clone(state.match.aiHandOrig[Math.floor(Math.random()*state.match.aiHandOrig.length)]); }
+        if(captured){ captured.id=uid(); state.cards.push(captured); save(LS_KEYS.cards,state.cards); }
+      }
+      // Bounty check
+      var handTypes = (state.match.playerHandStart || state.match.playerHand || []).map(function(c){ return c.type||c.element; });
+      var ctx = { handTypes: Array.from(new Set(handTypes)), boardVariant: state.settings.boardVariant, mode: state.settings.playMode };
+      checkBounties(p>a, ctx);
+
+      var body=['Tiles — You '+p+' : AI '+a,'Coins +'+reward]; if(captured) body.push('Captured: '+captured.name+(state.settings.ruleBestLoot?' (best)':'')); showModal(result, body.join('<br>'));
+    }
+
+    function pickHand(){ showTab('deck'); }
+    function startMatch(){
+      // memorize starting hand types for bounties
+      state.match && (state.match.playerHandStart = clone(state.match.playerHand));
+      newMatch();
+    }
+    function restartMatch(){ newMatch(); }
+    function forfeitMatch(){ showModal('Forfeit', 'You conceded the game.'); state.stats.losses++; save(LS_KEYS.stats,state.stats); }
+    function showModal(title, body){ qs('#modalTitle').textContent=title; qs('#modalBody').innerHTML=body; qs('#modal').classList.add('active'); }
+    function hideModal(){ qs('#modal').classList.remove('active'); }
+
+    function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+    function toast(msg){
+      var n=document.createElement('div'); n.textContent=msg;
+      n.style.position='fixed'; n.style.bottom='16px'; n.style.left='50%'; n.style.transform='translateX(-50%)';
+      n.style.padding='8px 12px'; n.style.border='1px solid rgba(255,255,255,.12)'; n.style.borderRadius='10px'; n.style.background='linear-gradient(180deg,#182233,#0f1622)'; n.style.boxShadow='var(--shadow)';
+      document.body.appendChild(n); setTimeout(function(){ n.style.transition='all .4s ease'; n.style.opacity='0'; n.style.transform='translateX(-50%) translateY(10px)'; setTimeout(function(){ n.remove(); },400); }, 1200);
+    }
+
+    function exportJSON(){
+      var data = {
+        version:'v11',
+        cards: state.cards, wallet: state.wallet, settings: state.settings, deck: state.deck, stats: state.stats,
+        packsList: state.packsList, pity: state.pity, bounties: state.bounties, presets: state.presets
+      };
+      var blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      var url = URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='triad-collector.json'; a.click(); URL.revokeObjectURL(url);
+    }
+    function importJSON(file){
+      var reader = new FileReader();
+      reader.onload=function(){
+        try{
+          var data = JSON.parse(reader.result);
+          if(!Array.isArray(data.cards)) throw new Error('bad file');
+          state.cards = data.cards.map(ensureBoosts);
+          state.wallet = data.wallet||state.wallet;
+          state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings||{});
+          state.deck = Array.isArray(data.deck)? data.deck: [];
+          state.stats = data.stats||state.stats;
+          state.packsList = Array.isArray(data.packsList)? data.packsList: (state.packsList||[]);
+          state.pity = data.pity || state.pity;
+          state.bounties = data.bounties || state.bounties;
+          state.presets = data.presets || state.presets;
+          save(LS_KEYS.cards,state.cards); save(LS_KEYS.wallet,state.wallet); save(LS_KEYS.settings,state.settings); save(LS_KEYS.deck,state.deck); save(LS_KEYS.stats,state.stats); save(LS_KEYS.packsList,state.packsList); save(LS_KEYS.pity,state.pity); save(LS_KEYS.bounties,state.bounties); save(LS_KEYS.presets,state.presets);
+          updateWallet(); populateEnums(); refreshCollection(); refreshDeckPool(); renderPackList();
+          qs('#ruleTypeAdv').checked=!!state.settings.ruleTypeAdv; qs('#ruleSame').checked=!!state.settings.ruleSame; qs('#rulePlus').checked=!!state.settings.rulePlus; qs('#ruleCombo').checked=!!state.settings.ruleCombo; qs('#ruleBestLoot').checked=!!state.settings.ruleBestLoot;
+          qs('#difficulty').value=state.settings.difficulty; qs('#playMode').value=state.settings.playMode; qs('#boardVariant').value=state.settings.boardVariant;
+          toast('Data imported');
+        }catch(err){ alert('Import failed: invalid JSON'); }
+      };
+      reader.readAsText(file);
+    }
+
+    function init(){
+      initTabs(); populateEnums(); updateWallet();
+      qs('#collection').className='cards-grid'; qs('#deckPool').className='cards-grid';
+
+      refreshCollection(); refreshDeckPool(); resetEditor(); renderPackList(); renderPresets(); renderBountiesUI();
+
+      // Editor
+      qs('#formCard').addEventListener('input', refreshPreview);
+      qs('#formCard').addEventListener('submit', upsertCard);
+      qs('#btnResetEditor').onclick = resetEditor;
+      qs('#btnDeleteCard').onclick = deleteCard;
+      qs('#btnNewCard').onclick = function(){ showTab('editor'); resetEditor(); qs('#cardName').focus(); };
+      qs('#btnUpgrade').onclick = openUpgrade;
+      qs('#btnUpgradeClose').onclick = function(){ qs('#upgradeModal').classList.remove('active'); };
+      qs('#upN').onclick = function(){ feedDuplicate('n'); };
+      qs('#upE').onclick = function(){ feedDuplicate('e'); };
+      qs('#upS').onclick = function(){ feedDuplicate('s'); };
+      qs('#upW').onclick = function(){ feedDuplicate('w'); };
+
+      // Collection filters
+      qs('#search').addEventListener('input', refreshCollection);
+      qs('#filterRarity').addEventListener('change', refreshCollection);
+      qs('#filterType').addEventListener('change', refreshCollection);
+      qs('#colMode').addEventListener('change', refreshCollection);
+      qs('#groupByRarity').addEventListener('change', refreshCollection);
+      qs('#tagFilter').addEventListener('input', refreshCollection);
+      qs('#tagAny').addEventListener('change', refreshCollection);
+
+      // Deck filters
+      qs('#deckSearch').addEventListener('input', refreshDeckPool);
+      qs('#deckFilterRarity').addEventListener('change', refreshDeckPool);
+      qs('#deckFilterType').addEventListener('change', refreshDeckPool);
+      qs('#deckSort').addEventListener('change', refreshDeckPool);
+      qs('#deckColMode').addEventListener('change', refreshDeckPool);
+      qs('#deckGroupRarity').addEventListener('change', refreshDeckPool);
+      qs('#deckTagFilter').addEventListener('input', refreshDeckPool);
+      qs('#deckTagAny').addEventListener('change', refreshDeckPool);
+      qs('#btnSaveDeck').onclick = function(){ if(state.deck.length!==5){ toast('Select exactly 5'); return; } save(LS_KEYS.deck,state.deck); toast('Default hand saved'); };
+      qs('#btnSavePreset').onclick = savePreset;
+
+      // Game
+      qs('#btnStart').onclick = startMatch;
+      qs('#btnRestart').onclick = restartMatch;
+      qs('#btnForfeit').onclick = forfeitMatch;
+      qs('#btnPickHand').onclick = pickHand;
+      qs('#ruleTypeAdv').onchange = function(e){ state.settings.ruleTypeAdv = !!e.target.checked; save(LS_KEYS.settings,state.settings); };
+      qs('#ruleSame').onchange = function(e){ state.settings.ruleSame = !!e.target.checked; save(LS_KEYS.settings,state.settings); };
+      qs('#rulePlus').onchange = function(e){ state.settings.rulePlus = !!e.target.checked; save(LS_KEYS.settings,state.settings); };
+      qs('#ruleCombo').onchange = function(e){ state.settings.ruleCombo = !!e.target.checked; save(LS_KEYS.settings,state.settings); };
+      qs('#ruleBestLoot').onchange = function(e){ state.settings.ruleBestLoot = !!e.target.checked; save(LS_KEYS.settings,state.settings); };
+      qs('#difficulty').onchange = function(e){ state.settings.difficulty = e.target.value; save(LS_KEYS.settings,state.settings); };
+      qs('#playMode').onchange = function(e){ state.settings.playMode = e.target.value; save(LS_KEYS.settings,state.settings); };
+      qs('#boardVariant').onchange = function(e){ state.settings.boardVariant = e.target.value; save(LS_KEYS.settings,state.settings); };
+
+      // Packs
+      qs('#btnNewPack').onclick = function(){ resetPackEditor(); qs('#packName').focus(); };
+      qs('#formPack').addEventListener('input', updatePackTotal);
+      qs('#formPack').addEventListener('submit', submitPack);
+      qs('#btnResetPack').onclick = resetPackEditor;
+      qs('#btnDeletePack').onclick = deletePack;
+      qs('#packSearch').addEventListener('input', renderPackList);
+      qs('#packTagFilter').addEventListener('input', renderPackList);
+      qs('#packTagAny').addEventListener('change', renderPackList);
+      qs('#packSort').addEventListener('change', renderPackList);
+
+      // IO
+      qs('#btnExport').onclick = exportJSON;
+      qs('#fileImport').onchange = function(e){ var f = e && e.target && e.target.files && e.target.files[0]; if(f) importJSON(f); };
+
+      // Money editor bindings
+      qs('#btnEditMoney').onclick = function(){ qs('#moneyInput').value = Math.max(0, Number(state.wallet.coins||0)); qs('#moneyModal').classList.add('active'); setTimeout(function(){ qs('#moneyInput').focus(); }, 50); };
+      qs('#btnMoneyCancel').onclick = function(){ qs('#moneyModal').classList.remove('active'); };
+      qs('#btnMoneySave').onclick = function(){ var v = Math.max(0, Math.floor(Number(qs('#moneyInput').value||0))); state.wallet.coins = v; save(LS_KEYS.wallet, state.wallet); updateWallet(); toast('Coins updated'); qs('#moneyModal').classList.remove('active'); };
+      qs('#btnCoinsMinus10').onclick = function(){ var el=qs('#moneyInput'); el.value = Math.max(0, Number(el.value||0)-10); };
+      qs('#btnCoinsPlus10').onclick = function(){ var el=qs('#moneyInput'); el.value = Math.max(0, Number(el.value||0)+10); };
+      qs('#btnCoinsPlus100').onclick = function(){ var el=qs('#moneyInput'); el.value = Math.max(0, Number(el.value||0)+100); };
+      qs('#moneyInput').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); qs('#btnMoneySave').click(); } });
+
+      // Start idle view
+      // no auto newMatch to allow mode/board choices first
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  })();
+  </script>
+</body>
+</html>
